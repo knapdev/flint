@@ -19,3 +19,23 @@ let PORT = process.env.PORT || 8082;
 server.listen(PORT, () => {
     console.log('Server running...');
 });
+
+
+// Sockets
+import {Server} from 'socket.io';
+let io = new Server(server);
+io.on('connection', (socket) => {
+    console.log('Client connected!');
+
+    socket.emit('init', {
+        data: '16'
+    });
+
+    socket.on('msg', (pack) => {
+        console.log('Client sent: ' + pack.data.toString());
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Client disconnected.');
+    })
+});
