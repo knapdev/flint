@@ -1,33 +1,35 @@
 'use strict';
 
+import User from "../../shared/user.js";
+
 window.addEventListener('load', (evnt) => {
     main();    
 });
 
-let uuid = -1;
+let user = null;
 
 function main(){
     console.log('Client started.');
 
     let socket = io();
     socket.on('connect-success', (pack) => {
-        uuid = pack.uuid;
+        user = new User(pack.uuid, socket, pack.name);
 
-        addEntryToLog('Welcome, ' + uuid + '!');
+        addEntryToLog('Welcome, ' + user.name + '!');
         addEntryToLog(pack.motd);
         addEntryToLog('Total users online: ' + pack.user_count);
     });
 
     socket.on('user-connected', (pack) => {
-        addEntryToLog(pack.data + ' connected!');
+        addEntryToLog(pack.name + ' connected!');
     });
 
     socket.on('user-disconnected', (pack) => {
-        addEntryToLog(pack.data + ' disconnected.');
+        addEntryToLog(pack.name + ' disconnected.');
     });
 
     socket.on('log-event', (pack) => {
-        addEntryToLog(pack.uuid + ' says, "' + pack.data + '"');
+        addEntryToLog(pack.name + ' says, "' + pack.data + '"');
     });
     
     let input = document.getElementById('eventlog-input');

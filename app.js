@@ -9,6 +9,7 @@ app.get('/', function(req, res){
     res.sendFile(__dirname + '/client/index.html');
 });
 app.use('/client', express.static(__dirname + '/client'));
+app.use('/shared', express.static(__dirname + '/shared'));
 
 import http from 'http';
 let server = http.createServer(app);
@@ -23,53 +24,67 @@ server.listen(PORT, () => {
 // Sockets
 import {v4 as UUID} from 'uuid';
 
+import User from './shared/user.js';
+
 let motd = 'This is the Message Of The Day!';
-let SOCKETS = {};
+let USERS = {};
+
+let names = [
+    'Henry',
+    'RedBull420',
+    'Marcus',
+    "John"
+];
 
 import {Server} from 'socket.io';
 let io = new Server(server);
 io.on('connection', (socket) => {
-    socket.uuid = UUID();
+    let rand = Math.floor(Math.random() * names.length);
+    let user = new User(UUID(), socket, names[rand]);
 
-    for(let s in SOCKETS){
-        let other = SOCKETS[s];
-        other.emit('user-connected', {
-            data: socket.uuid
+    for(let u in USERS){
+        let other = USERS[u];
+        other.socket.emit('user-connected', {
+            uuid: user.uuid,
+            name: user.name
         });
     }
-
-    SOCKETS[socket.uuid] = socket;
-    console.log('Client [' + socket.uuid + '] connected!');
+    
+    USERS[user.uuid] = user;
+    console.log('User [' + user.name + '] connected!');
 
     let i = 0;
-    for(let s in SOCKETS){
+    for(let u in USERS){
         i++;
     }
     socket.emit('connect-success', {
-        uuid: socket.uuid,
+        uuid: user.uuid,
+        name: user.name,
         motd: motd,
         user_count: i
     });
 
     socket.on('chat-msg', (pack) => {
-        for(let s in SOCKETS){
-            let other = SOCKETS[s];
-            other.emit('log-event', {
-                uuid: socket.uuid,
+        for(let u in USERS){
+            let other = USERS[u];
+            other.socket.emit('log-event', {
+                name: user.name,
                 data: pack.data
             });
         }
     });
 
     socket.on('disconnect', () => {
-        let id = socket.uuid;
-        console.log('Client [' + id + '] disconnected.');
-        delete SOCKETS[id];
+        let id = user.uuid;
+        let name = user.name;
+        console.log('Client [' + user.name + '] disconnected.');
+        delete USERS[id];
 
-        for(let s in SOCKETS){
-            let other = SOCKETS[s];
-            other.emit('user-disconnected', {
-                data: id
+        for(let u in USERS){
+            let other = USERS[u];
+            other.socket.emit('user-disconnected', {
+                uuid: id,
+                name: name
             });
         }
     });
