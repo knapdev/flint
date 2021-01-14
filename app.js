@@ -41,15 +41,6 @@ let io = new Server(server);
 io.on('connection', (socket) => {
     let rand = Math.floor(Math.random() * names.length);
     let user = new User(UUID(), socket, names[rand]);
-
-    for(let u in USERS){
-        let other = USERS[u];
-        other.socket.emit('user-connected', {
-            uuid: user.uuid,
-            name: user.name
-        });
-    }
-    
     USERS[user.uuid] = user;
     console.log('User [' + user.name + '] connected!');
 
@@ -62,6 +53,11 @@ io.on('connection', (socket) => {
         name: user.name,
         motd: motd,
         user_count: i
+    });
+
+    socket.broadcast.emit('user-connected', {
+        uuid: user.uuid,
+        name: user.name
     });
 
     socket.on('chat-msg', (pack) => {
