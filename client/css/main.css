@@ -7,3 +7,72 @@ body{
 canvas{
     image-rendering: pixelated;
 }
+
+#ui{
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* Event Log */
+
+#eventlog-container{
+    position: absolute;
+    bottom: 50px;
+    left: 50px;
+    width: 40vw;
+    height: 30vh;
+    /* background-color: #f1f1f1; */
+    border: 1px solid white;
+    text-align: left;
+    pointer-events: auto;
+}
+
+#eventlog-header{
+    height: 8%;
+    padding-left: 1%;
+    background-color: gray;
+    box-sizing: border-box;
+    border-bottom: 1px solid white;
+    color: black;
+    font-size: 1em;
+    line-height: 1em;
+    cursor: default;
+}
+
+#eventlog-contents{
+    /* padding-left: 1%; */
+    /* padding-right: 1%; */
+    height: 84%;
+    overflow: hidden;
+    overflow-y: scroll;
+    background-color: gray;
+}
+
+#eventlog-entry{
+    height: auto;
+    padding: 1%;
+    background-color: gray;
+    word-wrap: break-word;
+}
+
+#eventlog-entry:nth-child(even){
+    background-color: darkgray;
+}
+
+#eventlog-input{
+    width: 100%;
+    height: 8%;
+    padding: 0px;
+    border: none;
+    box-sizing: border-box;
+    border-top: 1px solid white;
+    background-image: none;
+    background-color: darkgray;
+    box-shadow: none;
+    -webkit-box-shadow: none;
+    -moz-box-shadow: none;
+}

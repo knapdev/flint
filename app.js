@@ -20,22 +20,57 @@ server.listen(PORT, () => {
     console.log('Server running...');
 });
 
-
 // Sockets
+import {v4 as UUID} from 'uuid';
+
+let motd = 'This is the Message Of The Day!';
+let SOCKETS = {};
+
 import {Server} from 'socket.io';
 let io = new Server(server);
 io.on('connection', (socket) => {
-    console.log('Client connected!');
+    socket.uuid = UUID();
 
-    socket.emit('init', {
-        data: '16'
+    for(let s in SOCKETS){
+        let other = SOCKETS[s];
+        other.emit('user-connected', {
+            data: socket.uuid
+        });
+    }
+
+    SOCKETS[socket.uuid] = socket;
+    console.log('Client [' + socket.uuid + '] connected!');
+
+    let i = 0;
+    for(let s in SOCKETS){
+        i++;
+    }
+    socket.emit('connect-success', {
+        uuid: socket.uuid,
+        motd: motd,
+        user_count: i
     });
 
-    socket.on('msg', (pack) => {
-        console.log('Client sent: ' + pack.data.toString());
+    socket.on('chat-msg', (pack) => {
+        for(let s in SOCKETS){
+            let other = SOCKETS[s];
+            other.emit('log-event', {
+                uuid: socket.uuid,
+                data: pack.data
+            });
+        }
     });
 
     socket.on('disconnect', () => {
-        console.log('Client disconnected.');
-    })
+        let id = socket.uuid;
+        console.log('Client [' + id + '] disconnected.');
+        delete SOCKETS[id];
+
+        for(let s in SOCKETS){
+            let other = SOCKETS[s];
+            other.emit('user-disconnected', {
+                data: id
+            });
+        }
+    });
 });
