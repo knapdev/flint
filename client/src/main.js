@@ -17,16 +17,24 @@ function main(){
         let roomname = document.getElementById('login-room').value || 'general';
 
         let socket = io();
-        socket.emit('join', {
+        socket.emit('login', {
             username: username,
             room: roomname
         });
 
-        socket.on('connect-success', (pack) => {
+        socket.on('user-created', (pack) => {
             document.getElementById('login-container').style.display = 'none';
             document.getElementById('game-screen').style.display = 'block';
-            user = new User(pack.uuid, pack.username, pack.room);
 
+            user = new User(pack.uuid, pack.name, pack.room);
+
+            socket.emit('user-created-res', {
+                success: true
+            });
+        });
+
+        socket.on('join-room', (pack) => {
+            user.room = pack.room;
             document.getElementById('eventlog-header').innerText = capitalize(user.room);
 
             addEntryToLog({
@@ -85,6 +93,15 @@ function main(){
                     }
                 }
             });
+        });
+
+        socket.on('leave-room', (pack) => {
+            socket.removeAllListeners('user-connected');
+            socket.removeAllListeners('user-disconnected');
+            socket.removeAllListeners('log-user-message');
+            socket.removeAllListeners('log-event');
+            socket.removeAllListeners('log-user-list');
+            User.USERS = {};
         });
     });
 }

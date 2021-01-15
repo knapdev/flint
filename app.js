@@ -30,46 +30,63 @@ let motd = 'This is the Message Of The Day!';
 let io = new IO(server);
 io.on('connection', (socket) => {
 
-    socket.on('join', (pack) => {
+    socket.on('login', (pack) => {
         let user = new User(UUID(), pack.username, pack.room);
-        console.log('User [' + user.name + '] connected to ' + user.room + '!');
+        console.log('User [' + user.name + '] connected!');
 
-        socket.join(user.room);
-
-        socket.emit('connect-success', {
-            uuid: user.uuid,
-            time: new Date().toLocaleTimeString().toLowerCase(),
-            username: user.name,
-            room: user.room,
-            motd: motd,
-            user_list: User.getUsersInRoom(user.room)
-        });
-
-        socket.broadcast.to(user.room).emit('user-connected', {
-            uuid: user.uuid,
-            time: new Date().toLocaleTimeString().toLowerCase(),
-            username: user.name,
-            room: user.room
-        });
-
-        socket.on('chat-msg', (pack) => {
-            parseMessage(socket, user, pack.data);
-        });
+        socket.emit('user-created', user);
+        socket.on('user-created-res', (pack) => {
+            if(pack.success === true){
+                joinRoom(socket, user);
+            }
+        });        
 
         socket.on('disconnect', () => {
-            let id = user.uuid;
-            let name = user.name;
-            let room = user.room;
-            console.log('Client [' + name + '] disconnected.');
-            delete User.USERS[id];
+            leaveRoom(socket, user);
 
-            io.to(room).emit('user-disconnected', {
-                uuid: id,
-                time: new Date().toLocaleTimeString().toLowerCase()
-            });
+            console.log('Client [' + user.name + '] disconnected.');
+            delete User.USERS[user.uuid];
         });
     });
 });
+
+function joinRoom(socket, user){
+    socket.join(user.room);
+
+    socket.emit('join-room', {
+        uuid: user.uuid,
+        time: new Date().toLocaleTimeString().toLowerCase(),
+        username: user.name,
+        room: user.room,
+        motd: motd,
+        user_list: User.getUsersInRoom(user.room)
+    });
+
+    socket.broadcast.to(user.room).emit('user-connected', {
+        uuid: user.uuid,
+        time: new Date().toLocaleTimeString().toLowerCase(),
+        username: user.name,
+        room: user.room
+    });
+
+    socket.on('chat-msg', (pack) => {
+        parseMessage(socket, user, pack.data);
+    });
+}
+
+function leaveRoom(socket, user){
+    io.to(user.room).emit('user-disconnected', {
+        uuid: user.uuid,
+        time: new Date().toLocaleTimeString().toLowerCase()
+    });
+
+    socket.emit('leave-room', {
+    });
+
+    socket.removeAllListeners('chat-msg');
+    socket.leave(user.room);
+    user.room = null;
+}
 
 function parseMessage(socket, user, message){
     if(message.charAt(0) === '/'){
@@ -89,6 +106,12 @@ function parseMessage(socket, user, message){
                 socket.emit('log-user-list', {
                     time: new Date().toLocaleTimeString().toLowerCase()
                 });
+                break;
+            case 'join':
+                leaveRoom(socket, user);
+                console.log(chunks[1]);
+                user.room = chunks[1];
+                joinRoom(socket, user);
                 break;
             default:
                 socket.emit('log-event', {
