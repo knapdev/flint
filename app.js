@@ -51,13 +51,7 @@ io.on('connection', (socket) => {
         });
 
         socket.on('chat-msg', (pack) => {
-            let success = parseMessage(socket, pack.data);
-            if(success == false){
-                io.to(user.room).emit('log-user-message', {
-                    name: user.name,
-                    text: pack.data
-                });
-            }
+            parseMessage(socket, user, pack.data);
         });
 
         socket.on('disconnect', () => {
@@ -74,14 +68,36 @@ io.on('connection', (socket) => {
     });
 });
 
-function parseMessage(socket, message){
-    if(message == '/who'){
-        socket.emit('log-user-list', {
-        });
-        return true;
-    }
+function parseMessage(socket, user, message){
+    if(message.charAt(0) === '/'){
+        message = message.substring(1);
 
-    return false;
+        let chunks = message.split(' ');
+        switch(chunks[0]){
+            case 'yell':
+                io.to(user.room).emit('log-user-message', {
+                    name: user.name,
+                    text: message.substring(5),
+                    type: 'loud'
+                });
+                break;
+            case 'who':
+                socket.emit('log-user-list', {
+                });
+                break;
+            default:
+                socket.emit('log-event', {
+                    text: 'Unknown command: ' + chunks[0]
+                });
+                break;
+        }
+    }else{
+        io.to(user.room).emit('log-user-message', {
+            name: user.name,
+            text: message,
+            type: 'normal'
+        });
+    }
 }
 
 function formatUserMessage(username, str){

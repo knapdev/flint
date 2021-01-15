@@ -63,10 +63,12 @@ function main(){
             let input = document.getElementById('eventlog-input');
             input.addEventListener('keyup', (evnt) => {
                 if(evnt.keyCode == 13){
-                    socket.emit('chat-msg', {
-                        data: input.value
-                    });
-                    input.value = '';
+                    if(input.value.length != 0){
+                        socket.emit('chat-msg', {
+                            data: input.value.toString()
+                        });
+                        input.value = '';
+                    }
                 }
             });
         });
@@ -75,6 +77,10 @@ function main(){
 
 function logUserMessage(data){
     let text = data.name + ' says, "' + data.text + '"';
+    if(data.type == 'loud'){
+        text = data.name + ' yells, "' + data.text + '"';
+    }
+    
     addEntryToLog(text);
 }
 
