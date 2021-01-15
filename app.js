@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
             username: user.name,
             room: user.room,
             motd: motd,
-            user_list: User.getUserPack(User.getUsersInRoom(user.room))
+            user_list: User.getUsersInRoom(user.room)
         });
 
         socket.broadcast.to(user.room).emit('user-connected', {

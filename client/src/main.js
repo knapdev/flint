@@ -35,7 +35,7 @@ function main(){
                 time: pack.time,
                 text: pack.motd
             });
-            let upack = JSON.parse(pack.user_list);
+            let upack = pack.user_list;
             for(let u in upack){
                 let up = upack[u];
                 let other = new User(up.uuid, up.name, up.room);
