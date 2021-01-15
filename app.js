@@ -25,7 +25,7 @@ import {Server as IO} from 'socket.io';
 import {v4 as UUID} from 'uuid';
 import User from './shared/user.js';
 
-let motd = 'This is the Message Of The Day!';
+let motd = 'This is the Message Of The Day! Type "/help" for command list.';
 
 let io = new IO(server);
 io.on('connection', (socket) => {
@@ -112,6 +112,18 @@ function parseMessage(socket, user, message){
                 console.log(chunks[1]);
                 user.room = chunks[1];
                 joinRoom(socket, user);
+                break;
+            case 'help':
+                let msg = 'Help:</br>';
+                msg += '/yell message : Yell.</br>';
+                msg += '/who : Show list of users in room.</br>';
+                msg += '/join room_name : Join new room.</br>';
+                msg += '/help : This help message.</br>';
+                socket.emit('log-event', {
+                    time: new Date().toLocaleTimeString().toLowerCase(),
+                    text: msg
+                });
+
                 break;
             default:
                 socket.emit('log-event', {
