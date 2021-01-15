@@ -11,43 +11,98 @@ let user = null;
 function main(){
     console.log('Client started.');
 
-    let socket = io();
-    socket.on('connect-success', (pack) => {
-        user = new User(pack.uuid, socket, pack.name);
+    let login_button = document.getElementById('login-button');
+    login_button.addEventListener('click', (evnt) => {
+        let username = document.getElementById('login-username').value;
 
-        addEntryToLog('Welcome, ' + user.name + '!');
-        addEntryToLog(pack.motd);
-        addEntryToLog('Total users online: ' + pack.user_count);
-    });
+        let socket = io();
+        socket.emit('join', {
+            username: username,
+            room: 'general'
+        });
 
-    socket.on('user-connected', (pack) => {
-        addEntryToLog(pack.name + ' connected!');
-    });
+        socket.on('connect-success', (pack) => {
+            document.getElementById('login-container').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'block';
+            user = new User(pack.uuid, pack.username, pack.room);
 
-    socket.on('user-disconnected', (pack) => {
-        addEntryToLog(pack.name + ' disconnected.');
-    });
+            addEntryToLog('Welcome, ' + user.name + '!');
+            addEntryToLog(pack.motd);
+            let upack = JSON.parse(pack.user_list);
+            for(let u in upack){
+                let up = upack[u];
+                let other = new User(up.uuid, up.name, up.room);
+            }
+            logUserList({});
 
-    socket.on('log-event', (pack) => {
-        addEntryToLog(pack.name + ' says, "' + pack.data + '"');
-    });
-    
-    let input = document.getElementById('eventlog-input');
-    input.addEventListener('keyup', (evnt) => {
-        if(evnt.keyCode == 13){
-            socket.emit('chat-msg', {
-                data: input.value
+
+            socket.on('user-connected', (pack) => {
+                let other = new User(pack.uuid, pack.username, pack.room);
+                addEntryToLog(other.name + ' connected!');
             });
-            input.value = '';
-        }
+        
+            socket.on('user-disconnected', (pack) => {
+                let other = User.USERS[pack.uuid];
+                addEntryToLog(other.name + ' disconnected.');
+                delete User.USERS[other.uuid];
+            });
+        
+            socket.on('log-user-message', (pack) => {
+                logUserMessage(pack);
+            });
+        
+            socket.on('log-event', (pack) => {
+                logEvent(pack);
+            });
+
+            socket.on('log-user-list', (pack) => {
+                logUserList({});
+            });
+            
+            let input = document.getElementById('eventlog-input');
+            input.addEventListener('keyup', (evnt) => {
+                if(evnt.keyCode == 13){
+                    socket.emit('chat-msg', {
+                        data: input.value
+                    });
+                    input.value = '';
+                }
+            });
+        });
     });
+}
+
+function logUserMessage(data){
+    let text = data.name + ' says, "' + data.text + '"';
+    addEntryToLog(text);
+}
+
+function logEvent(data){
+    let text = data.text;
+    addEntryToLog(text);
+}
+
+function logUserList(data){
+    let msg = '';        
+    let first = true;
+    for(let u in User.USERS){
+        if(first == false){
+            msg += ', ';
+        }
+        let other = User.USERS[u];
+        msg += other.name
+        if(first == true){
+            first = false;
+        }
+    }
+    addEntryToLog('Users: ' + msg + ' (Total: ' + User.getUserCount() + ')');
 }
 
 function addEntryToLog(msg){
     let contents = document.getElementById('eventlog-contents');
     let entry = document.createElement('div');
     entry.id = 'eventlog-entry';
-    entry.innerText = msg;
+    entry.innerHTML = msg;
     contents.append(entry);
     contents.scrollTop = contents.scrollHeight;
 }
