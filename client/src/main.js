@@ -14,11 +14,12 @@ function main(){
     let login_button = document.getElementById('login-button');
     login_button.addEventListener('click', (evnt) => {
         let username = document.getElementById('login-username').value;
+        let room = document.getElementById('login-room').value || 'general';
 
         let socket = io();
         socket.emit('join', {
             username: username,
-            room: 'general'
+            room: room
         });
 
         socket.on('connect-success', (pack) => {
@@ -26,7 +27,7 @@ function main(){
             document.getElementById('game-screen').style.display = 'block';
             user = new User(pack.uuid, pack.username, pack.room);
 
-            addEntryToLog('Welcome, ' + user.name + '!');
+            addEntryToLog('Welcome to ' + pack.room + ', ' + user.name + '!');
             addEntryToLog(pack.motd);
             let upack = JSON.parse(pack.user_list);
             for(let u in upack){

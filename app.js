@@ -21,7 +21,6 @@ server.listen(PORT, () => {
     console.log('Server running...');
 });
 
-
 import {Server as IO} from 'socket.io';
 import {v4 as UUID} from 'uuid';
 import User from './shared/user.js';
@@ -33,47 +32,57 @@ io.on('connection', (socket) => {
 
     socket.on('join', (pack) => {
         let user = new User(UUID(), pack.username, pack.room);
-        console.log('User [' + user.name + '] connected!');
+        console.log('User [' + user.name + '] connected to ' + user.room + '!');
+
+        socket.join(user.room);
 
         socket.emit('connect-success', {
             uuid: user.uuid,
             username: user.name,
             room: user.room,
             motd: motd,
-            user_list: User.getUserPack()
+            user_list: User.getUserPack(User.getUsersInRoom(user.room))
         });
 
-        socket.broadcast.emit('user-connected', {
+        socket.broadcast.to(user.room).emit('user-connected', {
             uuid: user.uuid,
             username: user.name,
             room: user.room
         });
 
         socket.on('chat-msg', (pack) => {
-            if(pack.data == '/who'){
-                socket.emit('log-user-list', {
+            let success = parseMessage(socket, pack.data);
+            if(success == false){
+                io.to(user.room).emit('log-user-message', {
+                    name: user.name,
+                    text: pack.data
                 });
-                return;
             }
-            
-            io.emit('log-user-message', {
-                name: user.name,
-                text: pack.data
-            });
         });
 
         socket.on('disconnect', () => {
             let id = user.uuid;
             let name = user.name;
+            let room = user.room;
             console.log('Client [' + name + '] disconnected.');
             delete User.USERS[id];
 
-            io.emit('user-disconnected', {
+            io.to(room).emit('user-disconnected', {
                 uuid: id
             });
         });
     });
 });
+
+function parseMessage(socket, message){
+    if(message == '/who'){
+        socket.emit('log-user-list', {
+        });
+        return true;
+    }
+
+    return false;
+}
 
 function formatUserMessage(username, str){
     return {

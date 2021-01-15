@@ -9,8 +9,18 @@ class User{
         }
         return count;
     }
-    static getUserPack(){
-        return JSON.stringify(User.USERS);
+    static getUserPack(obj){
+        return JSON.stringify(obj);
+    }
+    static getUsersInRoom(room){
+        let ret = {};
+        for(let u in User.USERS){
+            let user = User.USERS[u];
+            if(user.room === room){
+                ret[user.uuid] = user;
+            }
+        }
+        return ret;
     }
 
     constructor(uuid, name, room){
