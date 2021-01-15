@@ -29,7 +29,7 @@ function main(){
 
             addEntryToLog({
                 time: pack.time,
-                text: 'Welcome to ' + pack.room + ', ' + user.name + '!'
+                text: 'Welcome to ' + pack.room + ', <span class="eventlog-username">' + user.name + '</span>!'
             });
             addEntryToLog({
                 time: pack.time,
@@ -45,12 +45,18 @@ function main(){
 
             socket.on('user-connected', (pack) => {
                 let other = new User(pack.uuid, pack.username, pack.room);
-                addEntryToLog(other.name + ' connected!');
+                addEntryToLog({
+                    time: pack.time,
+                    text: '<span class="eventlog-username">' + other.name + '</span> connected!'
+                });
             });
         
             socket.on('user-disconnected', (pack) => {
                 let other = User.USERS[pack.uuid];
-                addEntryToLog(other.name + ' disconnected.');
+                addEntryToLog({
+                    time: pack.time,
+                    text: '<span class="eventlog-username">' + other.name + '</span> disconnected.'
+                });
                 delete User.USERS[other.uuid];
             });
         
@@ -82,9 +88,9 @@ function main(){
 }
 
 function logUserMessage(data){
-    let text = data.name + ' says, "' + data.text + '"';
+    let text = '<span class="eventlog-username">' + data.name + '</span> says, <span class="eventlog-msg">"' + data.text + '"</span>';
     if(data.type == 'loud'){
-        text = data.name + ' yells, "' + data.text + '"';
+        text = '<span class="eventlog-username">' + data.name + '</span> yells, <span class="eventlog-msg">"' + data.text + '"</span>';
     }
     
     addEntryToLog({
@@ -108,7 +114,7 @@ function logUserList(data){
             msg += ', ';
         }
         let other = User.USERS[u];
-        msg += other.name
+        msg += '<span class="eventlog-username">' + other.name + '</span>'
         if(first == true){
             first = false;
         }
