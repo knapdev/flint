@@ -38,6 +38,7 @@ io.on('connection', (socket) => {
 
         socket.emit('connect-success', {
             uuid: user.uuid,
+            time: new Date().toLocaleTimeString().toLowerCase(),
             username: user.name,
             room: user.room,
             motd: motd,
@@ -46,6 +47,7 @@ io.on('connection', (socket) => {
 
         socket.broadcast.to(user.room).emit('user-connected', {
             uuid: user.uuid,
+            time: new Date().toLocaleTimeString().toLowerCase(),
             username: user.name,
             room: user.room
         });
@@ -62,7 +64,8 @@ io.on('connection', (socket) => {
             delete User.USERS[id];
 
             io.to(room).emit('user-disconnected', {
-                uuid: id
+                uuid: id,
+                time: new Date().toLocaleTimeString().toLowerCase()
             });
         });
     });
@@ -76,6 +79,7 @@ function parseMessage(socket, user, message){
         switch(chunks[0]){
             case 'yell':
                 io.to(user.room).emit('log-user-message', {
+                    time: new Date().toLocaleTimeString().toLowerCase(),
                     name: user.name,
                     text: message.substring(5),
                     type: 'loud'
@@ -83,16 +87,19 @@ function parseMessage(socket, user, message){
                 break;
             case 'who':
                 socket.emit('log-user-list', {
+                    time: new Date().toLocaleTimeString().toLowerCase()
                 });
                 break;
             default:
                 socket.emit('log-event', {
+                    time: new Date().toLocaleTimeString().toLowerCase(),
                     text: 'Unknown command: ' + chunks[0]
                 });
                 break;
         }
     }else{
         io.to(user.room).emit('log-user-message', {
+            time: new Date().toLocaleTimeString().toLowerCase(),
             name: user.name,
             text: message,
             type: 'normal'

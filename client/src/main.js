@@ -27,14 +27,20 @@ function main(){
             document.getElementById('game-screen').style.display = 'block';
             user = new User(pack.uuid, pack.username, pack.room);
 
-            addEntryToLog('Welcome to ' + pack.room + ', ' + user.name + '!');
-            addEntryToLog(pack.motd);
+            addEntryToLog({
+                time: pack.time,
+                text: 'Welcome to ' + pack.room + ', ' + user.name + '!'
+            });
+            addEntryToLog({
+                time: pack.time,
+                text: pack.motd
+            });
             let upack = JSON.parse(pack.user_list);
             for(let u in upack){
                 let up = upack[u];
                 let other = new User(up.uuid, up.name, up.room);
             }
-            logUserList({});
+            logUserList(pack);
 
 
             socket.on('user-connected', (pack) => {
@@ -57,7 +63,7 @@ function main(){
             });
 
             socket.on('log-user-list', (pack) => {
-                logUserList({});
+                logUserList(pack);
             });
             
             let input = document.getElementById('eventlog-input');
@@ -81,12 +87,17 @@ function logUserMessage(data){
         text = data.name + ' yells, "' + data.text + '"';
     }
     
-    addEntryToLog(text);
+    addEntryToLog({
+        time: data.time,
+        text: text
+    });
 }
 
 function logEvent(data){
-    let text = data.text;
-    addEntryToLog(text);
+    addEntryToLog({
+        time: data.time,
+        text: data.text
+    });
 }
 
 function logUserList(data){
@@ -102,14 +113,17 @@ function logUserList(data){
             first = false;
         }
     }
-    addEntryToLog('Users: ' + msg + ' (Total: ' + User.getUserCount() + ')');
+    addEntryToLog({
+        time: data.time,
+        text: 'Users: ' + msg + ' (Total: ' + User.getUserCount() + ')'
+    });
 }
 
-function addEntryToLog(msg){
+function addEntryToLog(entry){
     let contents = document.getElementById('eventlog-contents');
-    let entry = document.createElement('div');
-    entry.id = 'eventlog-entry';
-    entry.innerHTML = msg;
-    contents.append(entry);
+    let elem = document.createElement('div');
+    elem.id = 'eventlog-entry';
+    elem.innerHTML = '[' + entry.time + '] ' + entry.text;
+    contents.append(elem);
     contents.scrollTop = contents.scrollHeight;
 }
