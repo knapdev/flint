@@ -48,9 +48,9 @@ canvas{
 
 /* Event Log */
 
-#eventlog-container{
+#eventlog{
     position: absolute;
-    bottom: 50px;
+    top: 400px;
     left: 50px;
     width: 30vw;
     height: 20vh;
@@ -62,6 +62,8 @@ canvas{
     pointer-events: auto;
     display: flex;
     flex-flow: column;
+    resize: both;
+    overflow: auto;
 }
 
 #eventlog-header{
@@ -74,6 +76,7 @@ canvas{
     line-height: 1.25em;
     cursor: default;
     flex: 0 1 auto;
+    user-select: none;
 }
 
 #eventlog-contents{
@@ -81,11 +84,12 @@ canvas{
     overflow-y: scroll;
     background-color: gray;
     flex: 1 1 auto;
+    user-select: none;
 }
 
 #eventlog-entry{
     height: auto;
-    padding: 1%;
+    padding: 0.25em;
     background-color: gray;
     word-wrap: break-word;
     line-height: 1.25em;

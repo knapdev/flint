@@ -22,12 +22,72 @@
 
         <div id="game-screen">
             <div id="ui">
-                <div id="eventlog-container">
+                <div id="eventlog">
                     <div id="eventlog-header">Log</div>
                     <div id="eventlog-contents"></div>
                     <input id="eventlog-input"/>
                 </div>
             </div>
+
+            <script>
+                dragElement(document.getElementById('eventlog'));
+                function dragElement(elm){
+                    let pos1 = 0, pos2 = 0, pos = 0, pos4 = 0;
+                    if(document.getElementById(elm.id + '-header')){
+                        document.getElementById(elm.id + '-header').onmousedown = (evnt) => {
+                            onMouseDown(evnt, elm);
+                        }
+                    }else{
+                        elm.onmousedown = (evnt) => {
+                            onMouseDown(evnt, elm);
+                        }
+                    }
+                }
+    
+                function onMouseDown(evnt, elm){
+                    evnt = evnt || window.event;
+                    evnt.preventDefault();
+    
+                    pos3 = evnt.clientX;
+                    pos4 = evnt.clientY;
+                    document.onmouseup = onMouseUp;
+                    document.onmousemove = (evnt) => {
+                        onMouseMove(evnt, elm);
+                    }
+                }
+
+                function onMouseUp(){
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                }
+    
+                function onMouseMove(evnt, elm){
+                    evnt = evnt || window.event;
+                    evnt.preventDefault();
+    
+                    pos1 = pos3 - evnt.clientX;
+                    pos2 = pos4 - evnt.clientY;
+                    pos3 = evnt.clientX;
+                    pos4 = evnt.clientY;
+    
+                    //constrain the element to the window bounds
+                    let offsetTop = (elm.offsetTop - pos2);
+                    if(offsetTop < 0){
+                        offsetTop = 0;
+                    }else if(offsetTop + elm.offsetHeight > window.innerHeight){
+                        offsetTop = window.innerHeight - elm.offsetHeight;
+                    }
+                    let offsetLeft = (elm.offsetLeft - pos1);
+                    if(offsetLeft < 0){
+                        offsetLeft = 0;
+                    }else if(offsetLeft + elm.offsetWidth > window.innerWidth){
+                        offsetLeft = window.innerWidth - elm.offsetWidth;
+                    }
+    
+                    elm.style.top = offsetTop + 'px';
+                    elm.style.left = offsetLeft + 'px';
+                }
+            </script>
         </div>
     </body>
 </html>
