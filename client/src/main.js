@@ -14,12 +14,12 @@ function main(){
     let login_button = document.getElementById('login-button');
     login_button.addEventListener('click', (evnt) => {
         let username = document.getElementById('login-username').value;
-        let room = document.getElementById('login-room').value || 'general';
+        let roomname = document.getElementById('login-room').value || 'general';
 
         let socket = io();
         socket.emit('join', {
             username: username,
-            room: room
+            room: roomname
         });
 
         socket.on('connect-success', (pack) => {
@@ -27,9 +27,11 @@ function main(){
             document.getElementById('game-screen').style.display = 'block';
             user = new User(pack.uuid, pack.username, pack.room);
 
+            document.getElementById('eventlog-header').innerText = capitalize(user.room);
+
             addEntryToLog({
                 time: pack.time,
-                text: 'Welcome to ' + pack.room + ', <span class="eventlog-username">' + user.name + '</span>!'
+                text: 'Welcome to ' + capitalize(user.room) + ', <span class="eventlog-username">' + user.name + '</span>!'
             });
             addEntryToLog({
                 time: pack.time,
@@ -85,6 +87,11 @@ function main(){
             });
         });
     });
+}
+
+function capitalize(str){
+    if(typeof s !== 'string') str = str.toString();
+    return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function logUserMessage(data){
