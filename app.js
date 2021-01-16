@@ -31,22 +31,32 @@ let io = new IO(server);
 io.on('connection', (socket) => {
 
     socket.on('login', (pack) => {
-        let user = new User(UUID(), pack.username, pack.room);
-        console.log('User [' + user.name + '] connected!');
+        if(pack.username === 'knapdev' && pack.password === 'pass'){
+            let user = new User(UUID(), pack.username, 'global');
+            console.log('User [' + user.name + '] connected!');
 
-        socket.emit('user-created', user);
-        socket.on('user-created-res', (pack) => {
-            if(pack.success === true){
-                joinRoom(socket, user);
-            }
-        });        
+            socket.emit('login-response', {
+                success: true
+            });
 
-        socket.on('disconnect', () => {
-            leaveRoom(socket, user);
+            socket.emit('user-created', user);
+            socket.on('user-created-res', (pack) => {
+                if(pack.success === true){
+                    joinRoom(socket, user);
+                }
+            });        
 
-            console.log('Client [' + user.name + '] disconnected.');
-            delete User.USERS[user.uuid];
-        });
+            socket.on('disconnect', () => {
+                leaveRoom(socket, user);
+
+                console.log('Client [' + user.name + '] disconnected.');
+                delete User.USERS[user.uuid];
+            });
+        }else{
+            socket.emit('login-response', {
+                success: false
+            });
+        }
     });
 });
 

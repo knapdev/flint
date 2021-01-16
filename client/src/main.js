@@ -10,98 +10,107 @@ let user = null;
 
 function main(){
     console.log('Client started.');
+    let socket = io();
 
     let login_button = document.getElementById('login-button');
     login_button.addEventListener('click', (evnt) => {
-        let username = document.getElementById('login-username').value;
-        let roomname = document.getElementById('login-room').value || 'general';
+        let username = document.getElementById('login-username');
+        let password = document.getElementById('login-password');
 
-        let socket = io();
+        
         socket.emit('login', {
-            username: username,
-            room: roomname
+            username: username.value,
+            password: password.value
         });
 
-        socket.on('user-created', (pack) => {
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'block';
+        socket.on('login-response', (pack) => {
+            if(pack.success == true){
+                document.getElementById('login-container').style.display = 'none';
+                document.getElementById('game-screen').style.display = 'block';
+            }else{
+                document.getElementById('login-alert').innerText = 'Login unsuccessful. Try again.';
+                username.value = '';
+                password.value = '';
+            }
+        });
+    });
 
-            user = new User(pack.uuid, pack.name, pack.room);
+    socket.on('user-created', (pack) => {
+        user = new User(pack.uuid, pack.name, pack.room);
 
-            socket.emit('user-created-res', {
-                success: true
+        socket.emit('user-created-res', {
+            success: true
+        });
+
+        socket.on('join-room', (pack) => {
+            user.room = pack.room;
+            document.getElementById('eventlog-header').innerText = capitalize(user.room);
+
+            addEntryToLog({
+                time: pack.time,
+                text: 'Welcome to ' + capitalize(user.room) + ', <span class="eventlog-username">' + user.name + '</span>!'
+            });
+            addEntryToLog({
+                time: pack.time,
+                text: pack.motd
             });
 
-            socket.on('join-room', (pack) => {
-                user.room = pack.room;
-                document.getElementById('eventlog-header').innerText = capitalize(user.room);
-    
+            for(let u in pack.user_list){
+                let pack_data = pack.user_list[u];
+                let other = new User(pack_data.uuid, pack_data.name, pack_data.room);
+            }
+            logUserList(pack);
+
+            socket.on('user-connected', (pack) => {
+                let other = new User(pack.uuid, pack.username, pack.room);
                 addEntryToLog({
                     time: pack.time,
-                    text: 'Welcome to ' + capitalize(user.room) + ', <span class="eventlog-username">' + user.name + '</span>!'
+                    text: '<span class="eventlog-username">' + other.name + '</span> connected!'
                 });
+            });
+        
+            socket.on('user-disconnected', (pack) => {
+                let other = User.USERS[pack.uuid];
                 addEntryToLog({
                     time: pack.time,
-                    text: pack.motd
+                    text: '<span class="eventlog-username">' + other.name + '</span> disconnected.'
                 });
-    
-                for(let u in pack.user_list){
-                    let pack_data = pack.user_list[u];
-                    let other = new User(pack_data.uuid, pack_data.name, pack_data.room);
-                }
+                delete User.USERS[other.uuid];
+            });
+        
+            socket.on('log-user-message', (pack) => {
+                logUserMessage(pack);
+            });
+        
+            socket.on('log-event', (pack) => {
+                logEvent(pack);
+            });
+
+            socket.on('log-user-list', (pack) => {
                 logUserList(pack);
-    
-                socket.on('user-connected', (pack) => {
-                    let other = new User(pack.uuid, pack.username, pack.room);
-                    addEntryToLog({
-                        time: pack.time,
-                        text: '<span class="eventlog-username">' + other.name + '</span> connected!'
-                    });
-                });
+            });
             
-                socket.on('user-disconnected', (pack) => {
-                    let other = User.USERS[pack.uuid];
-                    addEntryToLog({
-                        time: pack.time,
-                        text: '<span class="eventlog-username">' + other.name + '</span> disconnected.'
-                    });
-                    delete User.USERS[other.uuid];
-                });
-            
-                socket.on('log-user-message', (pack) => {
-                    logUserMessage(pack);
-                });
-            
-                socket.on('log-event', (pack) => {
-                    logEvent(pack);
-                });
-    
-                socket.on('log-user-list', (pack) => {
-                    logUserList(pack);
-                });
-                
-                let input = document.getElementById('eventlog-input');
-                input.addEventListener('keyup', (evnt) => {
-                    if(evnt.keyCode == 13){
-                        if(input.value.length != 0){
-                            socket.emit('chat-msg', {
-                                data: input.value.toString()
-                            });
-                            input.value = '';
-                        }
+            let input = document.getElementById('eventlog-input');
+            input.addEventListener('keyup', (evnt) => {
+                if(evnt.keyCode == 13){
+                    if(input.value.length != 0){
+                        socket.emit('chat-msg', {
+                            data: input.value.toString()
+                        });
+                        input.value = '';
                     }
-                });
+                }
             });
+        });
 
-            socket.on('leave-room', (pack) => {
-                socket.removeAllListeners('user-connected');
-                socket.removeAllListeners('user-disconnected');
-                socket.removeAllListeners('log-user-message');
-                socket.removeAllListeners('log-event');
-                socket.removeAllListeners('log-user-list');
-                User.USERS = {};
-            });
-        });        
+        socket.on('leave-room', (pack) => {
+            socket.removeAllListeners('user-connected');
+            socket.removeAllListeners('user-disconnected');
+            socket.removeAllListeners('log-user-message');
+            socket.removeAllListeners('log-event');
+            socket.removeAllListeners('log-user-list');
+            User.USERS = {};
+        });
     });
 }
 
