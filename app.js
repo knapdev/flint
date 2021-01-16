@@ -94,6 +94,19 @@ function parseMessage(socket, user, message){
 
         let chunks = message.split(' ');
         switch(chunks[0]){
+            case 'roll':
+                let num = Number(chunks[1]);
+                if(num == NaN){
+                    console.log('not a number');
+                    break;
+                }
+                let r = Math.floor(Math.random() * num) + '/' + num;
+                let text = user.name + ' rolls ' + r;
+                io.to(user.room).emit('log-event', {
+                    time: new Date().toLocaleTimeString().toLowerCase(),
+                    text: text
+                });
+                break;
             case 'yell':
                 io.to(user.room).emit('log-user-message', {
                     time: new Date().toLocaleTimeString().toLowerCase(),
@@ -118,6 +131,7 @@ function parseMessage(socket, user, message){
                 msg += '/yell message : Yell.</br>';
                 msg += '/who : Show list of users in room.</br>';
                 msg += '/join room_name : Join new room.</br>';
+                msg += '/roll number : Generate a random number between 0 and number.</br>';
                 msg += '/help : This help message.</br>';
                 socket.emit('log-event', {
                     time: new Date().toLocaleTimeString().toLowerCase(),
