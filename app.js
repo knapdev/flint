@@ -1,5 +1,39 @@
 'use strict';
 
+import mongojs from 'mongojs';
+var db = mongojs('localhost:27017/flint', ['accounts']);
+function authorize(username, password, callback){
+    db.accounts.findOne({username: username, password: password}, (err, res) => {
+        if(res == null){
+            callback(false);
+        }else{
+            callback(true);
+        }
+    });
+}
+
+function usernameTaken(username, callback){
+    db.accounts.findOne({username: username}, (err, res) => {
+        if(res == null){
+            callback(false);
+        }else{
+            callback(true);
+        }
+    });
+}
+
+function registerAccount(username, password, callback){
+    usernameTaken(username, (res) => {
+        if(res == true){
+            callback(false);
+        }else{
+            db.accounts.insert({username: username, password: password}, (err) => {
+                callback(true);
+            });
+        }
+    });
+}
+
 import express from 'express';
 import path from 'path';
 import http from 'http';
@@ -25,71 +59,48 @@ import {Server as IO} from 'socket.io';
 import {v4 as UUID} from 'uuid';
 import User from './shared/user.js';
 
-let ACCOUNTS = {
-    "knapdev": "pass",
-    "marty" : "dord",
-    "bob" : "bob"
-};
-function authorize(username, password){
-    return ACCOUNTS[username] === password;
-}
-
-function usernameTaken(username){
-    return ACCOUNTS[username];
-}
-
-function registerAccount(username, password){
-    if(usernameTaken(username)) return false;
-
-    ACCOUNTS[username] = password;
-    return true;
-};
-
 let motd = 'This is the Message Of The Day! Type "/help" for command list.';
 
 let io = new IO(server);
 io.on('connection', (socket) => {
 
     socket.on('login', (pack) => {
-        if(authorize(pack.username, pack.password)){
-            let user = new User(UUID(), pack.username, 'global');
-            console.log('User [' + user.name + '] connected!');
-
-            socket.emit('login-response', {
-                success: true
-            });
-
-            socket.emit('user-created', user);
-            socket.on('user-created-res', (pack) => {
-                if(pack.success === true){
-                    joinRoom(socket, user);
-                }
-            });        
-
-            socket.on('disconnect', () => {
-                leaveRoom(socket, user);
-
-                console.log('Client [' + user.name + '] disconnected.');
-                delete User.USERS[user.uuid];
-            });
-        }else{
-            socket.emit('login-response', {
-                success: false
-            });
-        }
+        authorize(pack.username, pack.password, (res) => {
+            if(res == true){
+                let user = new User(UUID(), pack.username, 'global');
+                console.log('User [' + user.name + '] connected!');
+    
+                socket.emit('login-response', {
+                    success: true
+                });
+    
+                socket.emit('user-created', user);
+                socket.on('user-created-res', (pack) => {
+                    if(pack.success === true){
+                        joinRoom(socket, user);
+                    }
+                });        
+    
+                socket.on('disconnect', () => {
+                    leaveRoom(socket, user);
+    
+                    console.log('Client [' + user.name + '] disconnected.');
+                    delete User.USERS[user.uuid];
+                });
+            }else{
+                socket.emit('login-response', {
+                    success: false
+                });
+            }
+        });
     });
 
     socket.on('register', (pack) => {
-        console.log('hmm');
-        if(registerAccount(pack.username, pack.password)){
+        registerAccount(pack.username, pack.password, (res) => {
             socket.emit('register-response', {
-                success: true
+                success: res
             });
-        }else{
-            socket.emit('register-response', {
-                success: false
-            });
-        }
+        });
     });
 });
 
@@ -165,7 +176,6 @@ function parseMessage(socket, user, message){
                 break;
             case 'join':
                 leaveRoom(socket, user);
-                console.log(chunks[1]);
                 user.room = chunks[1];
                 joinRoom(socket, user);
                 break;
