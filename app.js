@@ -25,13 +25,33 @@ import {Server as IO} from 'socket.io';
 import {v4 as UUID} from 'uuid';
 import User from './shared/user.js';
 
+let ACCOUNTS = {
+    "knapdev": "pass",
+    "marty" : "dord",
+    "bob" : "bob"
+};
+function authorize(username, password){
+    return ACCOUNTS[username] === password;
+}
+
+function usernameTaken(username){
+    return ACCOUNTS[username];
+}
+
+function registerAccount(username, password){
+    if(usernameTaken(username)) return false;
+
+    ACCOUNTS[username] = password;
+    return true;
+};
+
 let motd = 'This is the Message Of The Day! Type "/help" for command list.';
 
 let io = new IO(server);
 io.on('connection', (socket) => {
 
     socket.on('login', (pack) => {
-        if(pack.username === 'knapdev' && pack.password === 'pass'){
+        if(authorize(pack.username, pack.password)){
             let user = new User(UUID(), pack.username, 'global');
             console.log('User [' + user.name + '] connected!');
 
@@ -54,6 +74,19 @@ io.on('connection', (socket) => {
             });
         }else{
             socket.emit('login-response', {
+                success: false
+            });
+        }
+    });
+
+    socket.on('register', (pack) => {
+        console.log('hmm');
+        if(registerAccount(pack.username, pack.password)){
+            socket.emit('register-response', {
+                success: true
+            });
+        }else{
+            socket.emit('register-response', {
                 success: false
             });
         }

@@ -35,6 +35,29 @@ function main(){
         });
     });
 
+    let register_button = document.getElementById('register-button');
+    register_button.addEventListener('click', (evnt) => {
+        let username = document.getElementById('login-username');
+        let password = document.getElementById('login-password');
+
+        socket.emit('register', {
+            username: username.value,
+            password: password.value
+        });
+
+        socket.on('register-response', (pack) => {
+            if(pack.success == true){
+                document.getElementById('login-alert').innerText = 'Registration successful. Please login.';
+                username.value = '';
+                password.value = '';
+            }else{
+                document.getElementById('login-alert').innerText = 'Username taken.';
+                username.value = '';
+                password.value = '';
+            }
+        });
+    });
+
     socket.on('user-created', (pack) => {
         user = new User(pack.uuid, pack.name, pack.room);
 
