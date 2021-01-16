@@ -45,6 +45,11 @@ function main(){
                 time: pack.time,
                 text: pack.motd
             });
+
+            for(let u in pack.user_list){
+                let pack_data = pack.user_list[u];
+                let other = new User(pack_data.uuid, pack_data.name, pack_data.room);
+            }
             logUserList(pack);
 
             socket.on('user-connected', (pack) => {
