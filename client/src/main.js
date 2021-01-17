@@ -1,6 +1,6 @@
 'use strict';
 
-import Game from './game.js';
+import Client from './client.js';
 
 window.addEventListener('load', (evnt) => {
     main();    
@@ -8,6 +8,6 @@ window.addEventListener('load', (evnt) => {
 
 function main(){
     let config = {};
-    let game = new Game(config);
-    game.start();
+    let client = new Client(config);
+    client.start();
 }

@@ -13,7 +13,7 @@ import Keyboard from './input/keyboard.js';
 import User from '../../shared/user.js';
 import Utils from '../../shared/math/utils.js';
 
-class Game{
+class Client{
 
     renderer = null;
     shader = null;
@@ -60,8 +60,6 @@ class Game{
                 this.joinRoom(pack);
             });
         });
-
-        
 
         this.then = performance.now();
         this.frame_id = requestAnimationFrame(this.run.bind(this));
@@ -399,7 +397,7 @@ class Game{
     }
 }
 
-export default Game;
+export default Client;
 
 
 function generateMesh(gl){
