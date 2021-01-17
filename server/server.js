@@ -49,7 +49,7 @@ class Server{
         this.io = new IO(server);
         this.io.on('connection', (socket) => {
             socket.on('login', (pack) => {
-                Database.authorize(pack.username, pack.password, (res) => {
+                Database.authenticate(pack.username, pack.password, (res) => {
                     if(res == true){
                         let user = new User(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
                         console.log('User [' + user.name + '] connected!');

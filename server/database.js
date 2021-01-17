@@ -8,7 +8,7 @@ class Database{
         this.root = mongojs('localhost:27017/flint', ['accounts']);
     }
 
-    authorize(username, password, callback){
+    authenticate(username, password, callback){
         this.root.accounts.findOne({username: username, password: password}, (err, res) => {
             if(res == null){
                 callback(false);
