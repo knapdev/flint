@@ -1,38 +1,6 @@
 'use strict';
 
-import mongojs from 'mongojs';
-var db = mongojs('localhost:27017/flint', ['accounts']);
-function authorize(username, password, callback){
-    db.accounts.findOne({username: username, password: password}, (err, res) => {
-        if(res == null){
-            callback(false);
-        }else{
-            callback(true);
-        }
-    });
-}
-
-function usernameTaken(username, callback){
-    db.accounts.findOne({username: username}, (err, res) => {
-        if(res == null){
-            callback(false);
-        }else{
-            callback(true);
-        }
-    });
-}
-
-function registerAccount(username, password, callback){
-    usernameTaken(username, (res) => {
-        if(res == true){
-            callback(false);
-        }else{
-            db.accounts.insert({username: username, password: password}, (err) => {
-                callback(true);
-            });
-        }
-    });
-}
+import Database from './server/database.js';
 
 import express from 'express';
 import path from 'path';
@@ -67,7 +35,7 @@ let io = new IO(server);
 io.on('connection', (socket) => {
 
     socket.on('login', (pack) => {
-        authorize(pack.username, pack.password, (res) => {
+        Database.authorize(pack.username, pack.password, (res) => {
             if(res == true){
                 let user = new User(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
                 console.log('User [' + user.name + '] connected!');
@@ -112,7 +80,7 @@ io.on('connection', (socket) => {
     });
 
     socket.on('register', (pack) => {
-        registerAccount(pack.username, pack.password, (res) => {
+        Database.registerAccount(pack.username, pack.password, (res) => {
             socket.emit('register-response', {
                 success: res
             });
