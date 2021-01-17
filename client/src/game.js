@@ -19,7 +19,10 @@ class Game{
     shader = null;
 
     mesh = null;
+    head_mesh = null;
     texture = null;
+    guy_texture = null;
+    grass_texture = null;
     
     socket = null;
     user = null;
@@ -109,18 +112,28 @@ class Game{
 
             let cam_user = User.USERS[this.user.uuid];
             this.renderer.setCamera(new Vector3(cam_user.position.x, cam_user.position.y + 0.5, cam_user.position.z), cam_user.rotation);
-            this.renderer.setTexture(this.texture);
 
+            this.renderer.setTexture(this.grass_texture);
+            {
+                let matrix = Matrix4.create();
+                matrix = Matrix4.translate(matrix, 0, -0.5, 0);
+                matrix = Matrix4.scale(matrix, 256, 1, 256);
+                this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                this.renderer.drawMesh(this.mesh);
+            }
+
+            this.renderer.setTexture(this.texture);
             {
                 let matrix = Matrix4.create();
                 matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
                 this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
                 this.renderer.drawMesh(this.mesh);
             }
-
+            
             for(let u in User.USERS){
                 let other = User.USERS[u];
                 if(other != null && other.uuid != this.user.uuid){
+                    this.renderer.setTexture(this.guy_texture);
                     {
                         let matrix = Matrix4.create();
                         matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.25, other.position.z);
@@ -129,9 +142,10 @@ class Game{
                         matrix = Matrix4.translate(matrix, 0.0, 0.25, 0.0);
                         matrix = Matrix4.scale(matrix, 0.5, 0.5, 0.5);
                         this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-                        this.renderer.drawMesh(this.mesh);
+                        this.renderer.drawMesh(this.head_mesh);
                     }
 
+                    this.renderer.setTexture(this.texture);
                     {
                         let matrix = Matrix4.create();
                         matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.125, other.position.z);
@@ -159,9 +173,16 @@ class Game{
         });
         this.renderer.resize();
 
-        this.mesh = generateMesh(this.renderer.gl);
-        Texture.load(this.renderer.gl, '/client/res/textures/test.png', (texture) => {
+        this.mesh = generateMesh(this.renderer.getContext());
+        this.head_mesh = generateHeadMesh(this.renderer.getContext())
+        Texture.load(this.renderer.getContext(), '/client/res/textures/test.png', (texture) => {
             this.texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/guy.png', (texture) => {
+            this.guy_texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/grass.png', (texture) => {
+            this.grass_texture = texture;
         });
 
         this.renderer.canvas.addEventListener('mousemove', (evnt) => {
@@ -172,11 +193,9 @@ class Game{
         });
         this.renderer.canvas.addEventListener('click', (evnt) => {
             if(evnt.button == 0){
-                if(document.pointerLockElement === this.renderer.canvas){
-                    //this.socket.emit('shoot', {});
-                }else{
+                if(document.pointerLockElement !== this.renderer.canvas){
                     this.renderer.canvas.requestPointerLock();
-                }                    
+                }                  
             }
         });
 
@@ -480,6 +499,133 @@ function generateMesh(gl){
         //east
         0, 0,
         0, 1,
+        1, 1,
+        1, 0,
+    ];
+
+    let indices = [
+        0, 1, 2, 2, 3, 0,       //top
+        4, 5, 6, 6, 7, 4,       //bottom
+        8, 9, 10, 10, 11, 8,    //south
+        12, 13, 14, 14, 15, 12, //north
+        16, 17, 18, 18, 19, 16, //west
+        20, 21, 22, 22, 23, 20, //east
+    ];
+
+    return new Mesh(gl, indices, positions, normals, uvs);
+}
+
+function generateHeadMesh(gl){
+    let positions = [
+        //top
+        -0.5, 0.5, -0.5,
+        -0.5, 0.5, 0.5,
+        0.5, 0.5, 0.5,
+        0.5, 0.5, -0.5,
+
+        //bottom
+        -0.5, -0.5, 0.5,
+        -0.5, -0.5, -0.5,
+        0.5, -0.5, -0.5, 
+        0.5, -0.5, 0.5,
+
+        //south
+        -0.5, 0.5, 0.5,
+        -0.5, -0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, 0.5, 0.5,
+
+        //north
+        0.5, 0.5, -0.5,
+        0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, 0.5, -0.5,
+
+        //west
+        -0.5, 0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, 0.5,
+        -0.5, 0.5, 0.5,
+
+        //east
+        0.5, 0.5, 0.5,
+        0.5, -0.5, 0.5,
+        0.5, -0.5, -0.5,
+        0.5, 0.5, -0.5,
+    ];
+
+    let normals = [
+        //top
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 0.0,
+
+        //bottom
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+        0.0, -1.0, 0.0,
+
+        //south
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+        0.0, 0.0, 1.0,
+
+        //north
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, -1.0,
+
+        //west
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+        -1.0, 0.0, 0.0,
+
+        //east
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 0.0
+    ];
+
+    let uvs = [
+        //top
+        0.5, 0,
+        0.5, 1,
+        1, 1,
+        1, 0,
+
+        //bottom
+        0.5, 0,
+        0.5, 1,
+        1, 1,
+        1, 0,
+
+        //south
+        0.5, 0,
+        0.5, 1,
+        1, 1,
+        1, 0,
+
+        //north
+        0, 1,
+        0, 0,
+        0.5, 0,
+        0.5, 1,
+
+        //west
+        0.5, 0,
+        0.5, 1,
+        1, 1,
+        1, 0,
+
+        //east
+        0.5, 0,
+        0.5, 1,
         1, 1,
         1, 0,
     ];
