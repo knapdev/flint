@@ -14,7 +14,7 @@ import {v4 as UUID} from 'uuid';
 import Vector3 from '../shared/math/vector3.js';
 import Utils from '../shared/math/utils.js';
 
-import User from '../shared/user.js';
+import Player from '../shared/player.js';
 
 class Server{
 
@@ -51,39 +51,39 @@ class Server{
             socket.on('login', (pack) => {
                 Database.authenticate(pack.username, pack.password, (res) => {
                     if(res == true){
-                        let user = new User(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
-                        console.log('User [' + user.name + '] connected!');
+                        let player = new Player(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
+                        console.log('Player [' + player.name + '] connected!');
             
                         socket.emit('login-response', {
                             success: true
                         });
             
-                        socket.emit('user-created', {
-                            uuid: user.uuid,
-                            name: user.name,
-                            room: user.room,
+                        socket.emit('player-created', {
+                            uuid: player.uuid,
+                            name: player.name,
+                            room: player.room,
                             position: {
-                                x: user.position.x,
-                                y: user.position.y,
-                                z: user.position.z
+                                x: player.position.x,
+                                y: player.position.y,
+                                z: player.position.z
                             },
                             rotation: {
-                                x: user.rotation.x,
-                                y: user.rotation.y,
-                                z: user.rotation.z
+                                x: player.rotation.x,
+                                y: player.rotation.y,
+                                z: player.rotation.z
                             }
                         });
-                        socket.on('user-created-res', (pack) => {
+                        socket.on('player-created-res', (pack) => {
                             if(pack.success === true){
-                                this.joinRoom(socket, user);
+                                this.joinRoom(socket, player);
                             }
                         });        
             
                         socket.on('disconnect', () => {
-                            this.leaveRoom(socket, user);
+                            this.leaveRoom(socket, player);
             
-                            console.log('Client [' + user.name + '] disconnected.');
-                            delete User.USERS[user.uuid];
+                            console.log('Player [' + player.name + '] disconnected.');
+                            delete Player.PLAYERS[player.uuid];
                         });
                     }else{
                         socket.emit('login-response', {
@@ -114,113 +114,113 @@ class Server{
             let pack = [];
 
             let delta = TICK_RATE / 1000.0;
-            for(let u in User.USERS){
-                let user = User.USERS[u];
-                if(user.is_looking == true){
-                    user.rotation.y -= user.look_delta.x * 0.1 * delta;
-                    user.rotation.x -= user.look_delta.y * 0.1 * delta;
-                    user.rotation.x = Utils.clamp(user.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
-                    user.look_delta.x = 0;
-                    user.look_delta.y = 0;
+            for(let u in Player.PLAYERS){
+                let player = Player.PLAYERS[u];
+                if(player.is_looking == true){
+                    player.rotation.y -= player.look_delta.x * 0.1 * delta;
+                    player.rotation.x -= player.look_delta.y * 0.1 * delta;
+                    player.rotation.x = Utils.clamp(player.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
+                    player.look_delta.x = 0;
+                    player.look_delta.y = 0;
                 }
 
                 let vel = new Vector3();
-                let pos = user.position;
+                let pos = player.position;
 
-                if(user.move_input.magnitude() > 0){
-                    user.move_input = user.move_input.normalize();
-                    vel.x = user.move_input.x * 1 * delta;
-                    vel.z = user.move_input.z * 1 * delta;
+                if(player.move_input.magnitude() > 0){
+                    player.move_input = player.move_input.normalize();
+                    vel.x = player.move_input.x * 1 * delta;
+                    vel.z = player.move_input.z * 1 * delta;
                 }
 
-                user.position = pos.add(vel);
-                user.move_input.set(0, 0, 0);
+                player.position = pos.add(vel);
+                player.move_input.set(0, 0, 0);
 
                 pack.push({
-                    uuid: user.uuid,
+                    uuid: player.uuid,
                     position: {
-                        x: user.position.x,
-                        y: user.position.y,
-                        z: user.position.z
+                        x: player.position.x,
+                        y: player.position.y,
+                        z: player.position.z
                     },
                     rotation: {
-                        x: user.rotation.x,
-                        y: user.rotation.y,
-                        z: user.rotation.z
+                        x: player.rotation.x,
+                        y: player.rotation.y,
+                        z: player.rotation.z
                     }
                 });
             }
 
-            this.io.emit('update-users', pack);
+            this.io.emit('update-players', pack);
         }, TICK_RATE);
     }
 
-    joinRoom(socket, user){
-        socket.join(user.room);
+    joinRoom(socket, player){
+        socket.join(player.room);
     
         socket.emit('join-room', {
-            uuid: user.uuid,
+            uuid: player.uuid,
             time: new Date().toLocaleTimeString().toLowerCase(),
-            username: user.name,
-            room: user.room,
+            username: player.name,
+            room: player.room,
             motd: this.motd,
-            user_list: User.getUsersInRoom(user.room)
+            player_list: Player.getPlayersInRoom(player.room)
         });
     
-        socket.broadcast.to(user.room).emit('user-connected', {
-            uuid: user.uuid,
+        socket.broadcast.to(player.room).emit('player-connected', {
+            uuid: player.uuid,
             time: new Date().toLocaleTimeString().toLowerCase(),
-            username: user.name,
-            room: user.room,
+            username: player.name,
+            room: player.room,
             position: {
-                x: user.position.x,
-                y: user.position.y,
-                z: user.position.z
+                x: player.position.x,
+                y: player.position.y,
+                z: player.position.z
             },
             rotation: {
-                x: user.rotation.x,
-                y: user.rotation.y,
-                z: user.rotation.z
+                x: player.rotation.x,
+                y: player.rotation.y,
+                z: player.rotation.z
             }
         });
     
         socket.on('chat-msg', (pack) => {
-            this.parseMessage(socket, user, pack.data);
+            this.parseMessage(socket, player, pack.data);
         });
     
         socket.on('set-looking', (pack) => {
-            user.is_looking = pack.state;
+            player.is_looking = pack.state;
         });
         socket.on('set-look-delta', (pack) => {
-            user.look_delta.x = pack.x;
-            user.look_delta.y = pack.y;
+            player.look_delta.x = pack.x;
+            player.look_delta.y = pack.y;
         });
     
         socket.on('key-input', (pack) => {
             let move_input = new Vector3();
             if(pack['up'] == true){
-                move_input.x -= Math.sin(user.rotation.y);
-                move_input.z -= Math.cos(user.rotation.y);
+                move_input.x -= Math.sin(player.rotation.y);
+                move_input.z -= Math.cos(player.rotation.y);
             }
             if(pack['down'] == true){
-                move_input.x += Math.sin(user.rotation.y);
-                move_input.z += Math.cos(user.rotation.y);
+                move_input.x += Math.sin(player.rotation.y);
+                move_input.z += Math.cos(player.rotation.y);
             }
             if(pack['left'] == true){
-                move_input.x -= Math.cos(user.rotation.y);
-                move_input.z += Math.sin(user.rotation.y);
+                move_input.x -= Math.cos(player.rotation.y);
+                move_input.z += Math.sin(player.rotation.y);
             }
             if(pack['right'] == true){
-                move_input.x += Math.cos(user.rotation.y);
-                move_input.z -= Math.sin(user.rotation.y);
+                move_input.x += Math.cos(player.rotation.y);
+                move_input.z -= Math.sin(player.rotation.y);
             }
-            user.move_input.set(move_input.x, 0.0, move_input.z);
+            player.move_input.set(move_input.x, 0.0, move_input.z);
         });
     }
 
-    leaveRoom(socket, user){
-        this.io.to(user.room).emit('user-disconnected', {
-            uuid: user.uuid,
+    leaveRoom(socket, player){
+        this.io.to(player.room).emit('player-disconnected', {
+            uuid: player.uuid,
             time: new Date().toLocaleTimeString().toLowerCase()
         });
     
@@ -228,11 +228,11 @@ class Server{
         });
     
         socket.removeAllListeners('chat-msg');
-        socket.leave(user.room);
-        user.room = null;
+        socket.leave(player.room);
+        player.room = null;
     }
 
-    parseMessage(socket, user, message){
+    parseMessage(socket, player, message){
         if(message.charAt(0) === '/'){
             message = message.substring(1);
     
@@ -245,34 +245,34 @@ class Server{
                         break;
                     }
                     let r = Math.floor(Math.random() * num) + '/' + num;
-                    let text = user.name + ' rolls ' + r;
-                    this.io.to(user.room).emit('log-event', {
+                    let text = player.name + ' rolls ' + r;
+                    this.io.to(player.room).emit('log-event', {
                         time: new Date().toLocaleTimeString().toLowerCase(),
                         text: text
                     });
                     break;
                 case 'yell':
-                    this.io.to(user.room).emit('log-user-message', {
+                    this.io.to(player.room).emit('log-player-message', {
                         time: new Date().toLocaleTimeString().toLowerCase(),
-                        name: user.name,
+                        name: player.name,
                         text: message.substring(5),
                         type: 'loud'
                     });
                     break;
                 case 'who':
-                    socket.emit('log-user-list', {
+                    socket.emit('log-player-list', {
                         time: new Date().toLocaleTimeString().toLowerCase()
                     });
                     break;
                 case 'join':
-                    this.leaveRoom(socket, user);
-                    user.room = chunks[1];
-                    this.joinRoom(socket, user);
+                    this.leaveRoom(socket, player);
+                    player.room = chunks[1];
+                    this.joinRoom(socket, player);
                     break;
                 case 'help':
                     let msg = 'Help:</br>';
                     msg += '/yell message : Yell.</br>';
-                    msg += '/who : Show list of users in room.</br>';
+                    msg += '/who : Show list of players in room.</br>';
                     msg += '/join room_name : Join new room.</br>';
                     msg += '/roll number : Generate a random number between 0 and number.</br>';
                     msg += '/help : This help message.</br>';
@@ -290,9 +290,9 @@ class Server{
                     break;
             }
         }else{
-            this.io.to(user.room).emit('log-user-message', {
+            this.io.to(player.room).emit('log-player-message', {
                 time: new Date().toLocaleTimeString().toLowerCase(),
-                name: user.name,
+                name: player.name,
                 text: message,
                 type: 'normal'
             });

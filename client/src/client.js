@@ -10,7 +10,7 @@ import Vector3 from '../../shared/math/vector3.js';
 
 import Keyboard from './input/keyboard.js';
 
-import User from '../../shared/user.js';
+import Player from '../../shared/player.js';
 import Utils from '../../shared/math/utils.js';
 
 class Client{
@@ -27,7 +27,7 @@ class Client{
     boop_sound = null;
     
     socket = null;
-    user = null;
+    player = null;
 
     then = 0.0;
     frame_id = null;
@@ -49,10 +49,10 @@ class Client{
             this.register();
         });
 
-        this.socket.on('user-created', (pack) => {
-            this.user = new User(pack.uuid, pack.name, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        this.socket.on('player-created', (pack) => {
+            this.player = new Player(pack.uuid, pack.name, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
     
-            this.socket.emit('user-created-res', {
+            this.socket.emit('player-created-res', {
                 success: true
             });
     
@@ -105,13 +105,13 @@ class Client{
     }
 
     render(){
-        if(this.renderer && this.user){
+        if(this.renderer && this.player){
             this.renderer.clear();
 
             this.renderer.shader.bind();
 
-            let cam_user = User.USERS[this.user.uuid];
-            this.renderer.setCamera(new Vector3(cam_user.position.x, cam_user.position.y + 0.5, cam_user.position.z), cam_user.rotation);
+            let cam_player = Player.PLAYERS[this.player.uuid];
+            this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
 
             this.renderer.setTexture(this.grass_texture);
             {
@@ -130,9 +130,9 @@ class Client{
                 this.renderer.drawMesh(this.mesh);
             }
             
-            for(let u in User.USERS){
-                let other = User.USERS[u];
-                if(other != null && other.uuid != this.user.uuid){
+            for(let u in Player.PLAYERS){
+                let other = Player.PLAYERS[u];
+                if(other != null && other.uuid != this.player.uuid){
                     this.renderer.setTexture(this.guy_texture);
                     {
                         let matrix = Matrix4.create();
@@ -218,42 +218,42 @@ class Client{
     }
 
     joinRoom(pack){
-        this.user.room = pack.room;
-        document.getElementById('eventlog-header').innerText = this.capitalize(this.user.room);
+        this.player.room = pack.room;
+        document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
 
         this.addEntryToLog({
             time: pack.time,
-            text: 'Welcome to ' + this.capitalize(this.user.room) + ', <span class="eventlog-username">' + this.user.name + '</span>!'
+            text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.name + '</span>!'
         });
         this.addEntryToLog({
             time: pack.time,
             text: pack.motd
         });
 
-        for(let u in pack.user_list){
-            let pack_data = pack.user_list[u];
-            let other = new User(pack_data.uuid, pack_data.name, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+        for(let u in pack.player_list){
+            let pack_data = pack.player_list[u];
+            let other = new Player(pack_data.uuid, pack_data.name, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
         }
         this.logUserList(pack);
 
-        this.socket.on('user-connected', (pack) => {
-            let other = new User(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        this.socket.on('player-connected', (pack) => {
+            let other = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
             this.addEntryToLog({
                 time: pack.time,
                 text: '<span class="eventlog-username">' + other.name + '</span> connected!'
             });
         });
     
-        this.socket.on('user-disconnected', (pack) => {
-            let other = User.USERS[pack.uuid];
+        this.socket.on('player-disconnected', (pack) => {
+            let other = Player.PLAYERS[pack.uuid];
             this.addEntryToLog({
                 time: pack.time,
                 text: '<span class="eventlog-username">' + other.name + '</span> disconnected.'
             });
-            delete User.USERS[other.uuid];
+            delete Player.PLAYERS[other.uuid];
         });
     
-        this.socket.on('log-user-message', (pack) => {
+        this.socket.on('log-player-message', (pack) => {
             this.logUserMessage(pack);
         });
     
@@ -261,7 +261,7 @@ class Client{
             this.logEvent(pack);
         });
 
-        this.socket.on('log-user-list', (pack) => {
+        this.socket.on('log-player-list', (pack) => {
             this.logUserList(pack);
         });
         
@@ -278,18 +278,18 @@ class Client{
         });
 
         this.socket.on('leave-room', (pack) => {
-            this.socket.removeAllListeners('user-connected');
-            this.socket.removeAllListeners('user-disconnected');
-            this.socket.removeAllListeners('log-user-message');
+            this.socket.removeAllListeners('player-connected');
+            this.socket.removeAllListeners('player-disconnected');
+            this.socket.removeAllListeners('log-player-message');
             this.socket.removeAllListeners('log-event');
-            this.socket.removeAllListeners('log-user-list');
-            User.USERS = {};
+            this.socket.removeAllListeners('log-player-list');
+            Player.PLAYERS = {};
         });
 
-        this.socket.on('update-users', (pack) => {
+        this.socket.on('update-players', (pack) => {
             for(let i in pack){
                 let other_pack = pack[i];
-                let other = User.USERS[other_pack.uuid];
+                let other = Player.PLAYERS[other_pack.uuid];
                 if(other){
                     other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
                     other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
@@ -369,11 +369,11 @@ class Client{
     logUserList(data){
         let msg = '';        
         let first = true;
-        for(let u in User.USERS){
+        for(let u in Player.PLAYERS){
             if(first == false){
                 msg += ', ';
             }
-            let other = User.USERS[u];
+            let other = Player.PLAYERS[u];
             msg += '<span class="eventlog-username">' + other.name + '</span>'
             if(first == true){
                 first = false;
@@ -381,7 +381,7 @@ class Client{
         }
         this.addEntryToLog({
             time: data.time,
-            text: 'Users: ' + msg + ' (Total: ' + User.getUserCount() + ')'
+            text: 'Users: ' + msg + ' (Total: ' + Player.getPlayerCount() + ')'
         });
     }
 
