@@ -61,6 +61,7 @@ canvas{
     min-width: 200px;
     min-height: 100px;
     border: 1px solid white;
+    font-family: 'Texturina', serif;
     font-size: 0.8em;
     text-align: left;
     pointer-events: auto;
