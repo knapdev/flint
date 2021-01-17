@@ -23,6 +23,8 @@ class Game{
     texture = null;
     guy_texture = null;
     grass_texture = null;
+    bg_sound = null;
+    boop_sound = null;
     
     socket = null;
     user = null;
@@ -185,11 +187,15 @@ class Game{
             this.grass_texture = texture;
         });
 
-        let sound = new Audio();
-		sound.src = 'client/res/sound/bg.mp3';
-		sound.volume = 0.25;
-		sound.loop = true;
-		sound.play();
+        this.bg_sound = new Audio();
+		this.bg_sound.src = 'client/res/sounds/bg.mp3';
+		this.bg_sound.volume = 0.25;
+		this.bg_sound.loop = true;
+        this.bg_sound.play();
+        
+        this.boop_sound = new Audio();
+		this.boop_sound.src = 'client/res/sounds/boop.mp3';
+		this.boop_sound.volume = 0.25;
 
         this.renderer.canvas.addEventListener('mousemove', (evnt) => {
             this.socket.emit('set-look-delta', {
@@ -388,6 +394,8 @@ class Game{
         elem.innerHTML = '[' + entry.time + '] ' + entry.text;
         contents.append(elem);
         contents.scrollTop = contents.scrollHeight;
+
+        this.boop_sound.play();
     }
 }
 
