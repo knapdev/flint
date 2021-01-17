@@ -1,15 +1,16 @@
 'use strict';
 
-import Matrix4 from '../../../../shared/core/math/matrix4.js'
+import Matrix4 from '../../../shared/math/matrix4.js'
 
 import Shader from './shader.js'
 
-import Utils from '../../../../shared/core/utils/utils.js'
+import Utils from '../../../shared/math/utils.js'
 
 class Renderer {
-	constructor(canvasId){
-		this.canvas = document.createElement(canvasId);
-		document.body.appendChild(this.canvas);
+	constructor(canvas_id, container_id){
+		this.canvas = document.createElement(canvas_id);
+		let container = container_id != undefined ? document.getElementById(container_id) : document.body;
+		container.prepend(this.canvas);
 		try{
 			this.gl = this.canvas.getContext('webgl2');
 		}catch(e){

@@ -58,6 +58,8 @@ server.listen(PORT, () => {
 import {Server as IO} from 'socket.io';
 import {v4 as UUID} from 'uuid';
 import User from './shared/user.js';
+import Vector3 from './shared/math/vector3.js';
+import Utils from './shared/math/utils.js';
 
 let motd = 'This is the Message Of The Day! Type "/help" for command list.';
 
@@ -67,14 +69,28 @@ io.on('connection', (socket) => {
     socket.on('login', (pack) => {
         authorize(pack.username, pack.password, (res) => {
             if(res == true){
-                let user = new User(UUID(), pack.username, 'global');
+                let user = new User(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
                 console.log('User [' + user.name + '] connected!');
     
                 socket.emit('login-response', {
                     success: true
                 });
     
-                socket.emit('user-created', user);
+                socket.emit('user-created', {
+                    uuid: user.uuid,
+                    name: user.name,
+                    room: user.room,
+                    position: {
+                        x: user.position.x,
+                        y: user.position.y,
+                        z: user.position.z
+                    },
+                    rotation: {
+                        x: user.rotation.x,
+                        y: user.rotation.y,
+                        z: user.rotation.z
+                    }
+                });
                 socket.on('user-created-res', (pack) => {
                     if(pack.success === true){
                         joinRoom(socket, user);
@@ -120,11 +136,50 @@ function joinRoom(socket, user){
         uuid: user.uuid,
         time: new Date().toLocaleTimeString().toLowerCase(),
         username: user.name,
-        room: user.room
+        room: user.room,
+        position: {
+            x: user.position.x,
+            y: user.position.y,
+            z: user.position.z
+        },
+        rotation: {
+            x: user.rotation.x,
+            y: user.rotation.y,
+            z: user.rotation.z
+        }
     });
 
     socket.on('chat-msg', (pack) => {
         parseMessage(socket, user, pack.data);
+    });
+
+    socket.on('set-looking', (pack) => {
+        user.is_looking = pack.state;
+    });
+    socket.on('set-look-delta', (pack) => {
+        user.look_delta.x = pack.x;
+        user.look_delta.y = pack.y;
+    });
+
+    socket.on('key-input', (pack) => {
+        let move_input = new Vector3();
+        if(pack['up'] == true){
+            move_input.x -= Math.sin(user.rotation.y);
+            move_input.z -= Math.cos(user.rotation.y);
+        }
+        if(pack['down'] == true){
+            move_input.x += Math.sin(user.rotation.y);
+            move_input.z += Math.cos(user.rotation.y);
+        }
+        if(pack['left'] == true){
+            move_input.x -= Math.cos(user.rotation.y);
+            move_input.z += Math.sin(user.rotation.y);
+        }
+        if(pack['right'] == true){
+            move_input.x += Math.cos(user.rotation.y);
+            move_input.z -= Math.sin(user.rotation.y);
+        }
+        user.move_input.set(move_input.x, 0.0, move_input.z);
     });
 }
 
@@ -215,3 +270,55 @@ function formatUserMessage(username, str){
         text: str
     };
 }
+
+const TICK_RATE = 1000 / 20;
+setInterval(() => {
+    let pack = [];
+
+    let delta = TICK_RATE / 1000.0;
+    for(let u in User.USERS){
+        let user = User.USERS[u];
+        if(user.is_looking == true){
+            user.rotation.y -= user.look_delta.x * 0.15 * delta;
+            user.rotation.x -= user.look_delta.y * 0.15 * delta;
+            user.rotation.x = Utils.clamp(user.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
+            user.look_delta.x = 0;
+            user.look_delta.y = 0;
+        }
+
+        let vel = user.velocity;
+        let pos = user.position;
+
+        if(user.move_input.magnitude() > 0){
+            user.move_input = user.move_input.normalize();
+            vel.x += user.move_input.x * 1 * delta;
+            vel.z += user.move_input.z * 1 * delta;
+        }
+        
+        vel.x *= 0.8;
+        vel.z *= 0.8;
+
+        if(vel.magnitude() < 0.01){
+            vel.set(0, 0, 0);
+        }
+
+        user.position = pos.add(vel);
+        user.move_input.set(0, 0, 0);
+
+        pack.push({
+            uuid: user.uuid,
+            position: {
+                x: user.position.x,
+                y: user.position.y,
+                z: user.position.z
+            },
+            rotation: {
+                x: user.rotation.x,
+                y: user.rotation.y,
+                z: user.rotation.z
+            }
+        });
+    }
+
+    io.emit('update-users', pack);
+}, TICK_RATE);
