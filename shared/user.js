@@ -45,7 +45,6 @@ class User{
         this.look_delta = new Vector3();
         this.is_looking = false;
         this.move_input = new Vector3();
-        this.velocity = new Vector3();
 
         User.USERS[this.uuid] = this;
     }

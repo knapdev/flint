@@ -279,27 +279,20 @@ setInterval(() => {
     for(let u in User.USERS){
         let user = User.USERS[u];
         if(user.is_looking == true){
-            user.rotation.y -= user.look_delta.x * 0.15 * delta;
-            user.rotation.x -= user.look_delta.y * 0.15 * delta;
+            user.rotation.y -= user.look_delta.x * 0.1 * delta;
+            user.rotation.x -= user.look_delta.y * 0.1 * delta;
             user.rotation.x = Utils.clamp(user.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
             user.look_delta.x = 0;
             user.look_delta.y = 0;
         }
 
-        let vel = user.velocity;
+        let vel = new Vector3();
         let pos = user.position;
 
         if(user.move_input.magnitude() > 0){
             user.move_input = user.move_input.normalize();
-            vel.x += user.move_input.x * 1 * delta;
-            vel.z += user.move_input.z * 1 * delta;
-        }
-        
-        vel.x *= 0.8;
-        vel.z *= 0.8;
-
-        if(vel.magnitude() < 0.01){
-            vel.set(0, 0, 0);
+            vel.x = user.move_input.x * 1 * delta;
+            vel.z = user.move_input.z * 1 * delta;
         }
 
         user.position = pos.add(vel);
