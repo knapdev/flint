@@ -185,6 +185,12 @@ class Game{
             this.grass_texture = texture;
         });
 
+        let sound = new Audio();
+		sound.src = 'client/res/sound/bg.mp3';
+		sound.volume = 0.25;
+		sound.loop = true;
+		sound.play();
+
         this.renderer.canvas.addEventListener('mousemove', (evnt) => {
             this.socket.emit('set-look-delta', {
                 x: evnt.movementX,
