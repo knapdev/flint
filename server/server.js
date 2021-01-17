@@ -16,6 +16,9 @@ import Utils from '../shared/math/utils.js';
 
 import Player from '../shared/player.js';
 
+import World from '../shared/world/world.js';
+import Coord from '../shared/world/coord.js';
+
 class Server{
 
     motd = '';
@@ -44,6 +47,13 @@ class Server{
         server.listen(PORT, () => {
             console.log('Server running...');
         });
+
+        this.world = new World();
+        this.world.registerOnChunkCreatedCallback((chunk) => {
+            console.log('Chunk created!');
+            //send chunk data to appropriate clients?
+        });
+        this.world.createChunk(new Coord(0, 0, 0));
 
         // Start socketio server
         this.io = new IO(server);
