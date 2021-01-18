@@ -46,7 +46,7 @@ class Server{
             console.log('Server running...');
         });
 
-        this.world = new World();
+        this.world = new World('The Ancient Dawn', 'dord');
         this.world.registerOnChunkCreatedCallback((chunk) => {
             console.log('Chunk created!');
             //send chunk data to appropriate clients?
@@ -88,7 +88,13 @@ class Server{
                                 move_input.x += Math.cos(player.rotation.y);
                                 move_input.z -= Math.sin(player.rotation.y);
                             }
-                            player.move_input.set(move_input.x, 0.0, move_input.z);
+                            if(pack['space'] == true){
+                                move_input.y += 1.0;
+                            }
+                            if(pack['shift'] == true){
+                                move_input.y -= 1.0;
+                            }
+                            player.move_input.set(move_input.x, move_input.y, move_input.z);
                         });
             
                         socket.emit('login-response', {
@@ -108,7 +114,9 @@ class Server{
                                 y: player.rotation.y,
                                 z: player.rotation.z
                             },
-                            player_list: Player.getPlayersInRoom(player.room)
+                            player_list: Player.getPlayersInRoom(player.room),
+                            world_name: this.world.name,
+                            world_seed: this.world.seed
                         });
 
                         socket.broadcast.emit('player-connected', {
@@ -186,8 +194,9 @@ class Server{
 
                 if(player.move_input.magnitude() > 0){
                     player.move_input = player.move_input.normalize();
-                    vel.x = player.move_input.x * 1 * delta;
-                    vel.z = player.move_input.z * 1 * delta;
+                    vel.x = player.move_input.x * 3 * delta;
+                    vel.y = player.move_input.y * 3 * delta;
+                    vel.z = player.move_input.z * 3 * delta;
                 }
 
                 player.position = pos.add(vel);

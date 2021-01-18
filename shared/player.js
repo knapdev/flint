@@ -48,6 +48,10 @@ class Player{
 
         Player.PLAYERS[this.uuid] = this;
     }
+
+    getEyePos(){
+		return new Vector3(this.position.x, this.position.y + 0.5, this.position.z);
+	}
 }
 
 export default Player;

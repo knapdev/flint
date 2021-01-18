@@ -3,11 +3,15 @@
 import Chunk from "./chunk.js";
 import Coord from "./coord.js";
 
+import Noise from '../math/noise.js';
+
 class World{
 
     static CHUNK_SIZE = 8;
 
     name = '';
+
+    noise = null;
     seed = '';
 
     chunks = {};
@@ -19,6 +23,9 @@ class World{
     constructor(name, seed){
         this.name = name || 'New World';
         this.seed = seed || 'random';
+
+        this.noise = new Noise();
+        this.noise.seed(this.seed);
     }
 
     tick(delta){
@@ -30,18 +37,25 @@ class World{
             let chunk = new Chunk(this, coord);
             this.chunks[coord.getHash()] = chunk;
 
-            //generate
-            for(let y = coord.y; y < coord.y + World.CHUNK_SIZE; y++){
+			for(let y = coord.y; y < coord.y + World.CHUNK_SIZE; y++){
 				for(let x = coord.x; x < coord.x + World.CHUNK_SIZE; x++){
 					for(let z = coord.z; z < coord.z + World.CHUNK_SIZE; z++){
-                        let cell_coord = new Coord(x, y, z);
-                        let rand = Math.random();
-                        if(rand < 0.9){
-                            chunk.getCell(cell_coord).setTerrain(true);
-                        }
-                    }
-                }
-            }
+						let cellCoord = new Coord(x, y, z);
+
+						let height = 0;                        
+                        height += ((this.noise.simplex3(x / 128, 0, z / 128) + 1.0) / 2.0) * 8;
+                        height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 4;
+                        height += ((this.noise.simplex3(x / 8, 0, z / 8) + 1.0) / 2.0) * 2;
+
+						height = Math.floor(height);
+						if(y <= height){
+							chunk.getCell(cellCoord).setTerrain(1);
+						}else{
+							chunk.getCell(cellCoord).setTerrain(null);
+						}
+					}
+				}				
+			}
 
             //load save data
 
@@ -123,6 +137,10 @@ class World{
     unregisterOnChunkUpdatedCallback(callback){
         this.onChunkUpdatedCallbacks.remove(callback);
     }
+
+    getNoise(x, y, z, scale, max){
+		return Math.floor((this.noise.simplex3(x * scale, y * scale, z * scale) + 1.0) * (max / 2.0));
+	}
 }
 
 export default World;

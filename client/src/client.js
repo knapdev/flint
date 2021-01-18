@@ -28,6 +28,7 @@ class Client{
     texture = null;
     guy_texture = null;
     grass_texture = null;
+    crate_texture = null;
     bg_sound = null;
     boop_sound = null;
     
@@ -91,7 +92,13 @@ class Client{
             if(Keyboard.getKey(Keyboard.KeyCode.D)){
                 key_input['right'] = true;
             }
-            if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true){
+            if(Keyboard.getKey(Keyboard.KeyCode.SPACE)){
+                key_input['space'] = true;
+            }
+            if(Keyboard.getKey(Keyboard.KeyCode.SHIFT)){
+                key_input['shift'] = true;
+            }
+            if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true || key_input['space'] == true || key_input['shift'] == true){
                 this.socket.emit('key-input', key_input);
             }
         }
@@ -105,25 +112,17 @@ class Client{
         let cam_player = Player.PLAYERS[this.player.uuid];
         this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
 
-        // this.renderer.setTexture(this.grass_texture);
-        // {
-        //     let matrix = Matrix4.create();
-        //     matrix = Matrix4.translate(matrix, 0, -0.5, 0);
-        //     matrix = Matrix4.scale(matrix, 256, 1, 256);
-        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-        //     this.renderer.drawMesh(this.mesh);
-        // }
-        this.renderer.setTexture(this.texture);
+        this.renderer.setTexture(this.crate_texture);
         this.worldRenderer.render();
 
-        
-        // {
-        //     let matrix = Matrix4.create();
-        //     matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
-        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-        //     this.renderer.drawMesh(this.mesh);
-        // }
-        
+        this.renderer.setTexture(this.texture);
+        {
+            let matrix = Matrix4.create();
+            matrix = Matrix4.translate(matrix, 0.5, 0.5, 0.5);
+            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+            this.renderer.drawMesh(this.mesh);
+        }
+
         for(let u in Player.PLAYERS){
             let other = Player.PLAYERS[u];
             if(other != null && other.uuid != this.player.uuid){
@@ -159,7 +158,7 @@ class Client{
         this.renderer.setShader(this.shader);
 
         this.renderer.setPerspective(50.0, 0.01, 256.0);
-        this.renderer.setClearColor(0.72, 0.89, 0.99, 1.0);
+        this.renderer.setClearColor(0.05, 0.05, 0.1, 1.0);
 
         window.addEventListener('resize', (evnt) => {
             this.renderer.resize();
@@ -176,6 +175,9 @@ class Client{
         });
         Texture.load(this.renderer.getContext(), '/client/res/textures/grass.png', (texture) => {
             this.grass_texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/crate.png', (texture) => {
+            this.crate_texture = texture;
         });
 
         this.bg_sound = new Audio();
@@ -212,15 +214,17 @@ class Client{
         });
     }
 
-    initWorld(){
-        this.world = new World('World', 'seed');
+    initWorld(name, seed){
+        this.world = new World(name, seed);
         this.worldRenderer = new WorldRenderer(this.world, this.renderer);
 
-        for(let x = -8; x <= 8; x += 8){
-            for(let z = -8; z <= 8; z += 8){
-                this.world.createChunk(new Coord(x, -8, z));
-            }
-        }
+        //for(let y = 8; y > -8; y -= 8){
+            //for(let x = -16; x <= 16; x += 8){
+                //for(let z = -16; z <= 16; z += 8){
+                    this.world.createChunk(new Coord(0, -8, 0));
+                //}
+            //}
+        //}
     }
 
     login(){
@@ -237,7 +241,7 @@ class Client{
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'block';
                 this.initRenderer();
-                this.initWorld();
+                this.initWorld(pack.world_name, pack.world_seed);
 
                 this.player = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
 
