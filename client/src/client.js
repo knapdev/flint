@@ -10,8 +10,13 @@ import Vector3 from '../../shared/math/vector3.js';
 
 import Keyboard from './input/keyboard.js';
 
+import World from '../../shared/world/world.js';
+import WorldRenderer from './worldrenderer.js';
+import Coord from '../../shared/world/coord.js';
+
 import Player from '../../shared/player.js';
 import Utils from '../../shared/math/utils.js';
+
 
 class Client{
 
@@ -28,6 +33,9 @@ class Client{
     
     socket = null;
     player = null;
+
+    world = null;
+    worldRenderer = null;
 
     then = 0.0;
     frame_id = null;
@@ -92,27 +100,29 @@ class Client{
     render(){
         this.renderer.clear();
 
-        this.renderer.shader.bind();
+        this.renderer.shader.bind();        
 
         let cam_player = Player.PLAYERS[this.player.uuid];
         this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
 
-        this.renderer.setTexture(this.grass_texture);
-        {
-            let matrix = Matrix4.create();
-            matrix = Matrix4.translate(matrix, 0, -0.5, 0);
-            matrix = Matrix4.scale(matrix, 256, 1, 256);
-            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-            this.renderer.drawMesh(this.mesh);
-        }
-
+        // this.renderer.setTexture(this.grass_texture);
+        // {
+        //     let matrix = Matrix4.create();
+        //     matrix = Matrix4.translate(matrix, 0, -0.5, 0);
+        //     matrix = Matrix4.scale(matrix, 256, 1, 256);
+        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+        //     this.renderer.drawMesh(this.mesh);
+        // }
         this.renderer.setTexture(this.texture);
-        {
-            let matrix = Matrix4.create();
-            matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
-            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-            this.renderer.drawMesh(this.mesh);
-        }
+        this.worldRenderer.render();
+
+        
+        // {
+        //     let matrix = Matrix4.create();
+        //     matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
+        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+        //     this.renderer.drawMesh(this.mesh);
+        // }
         
         for(let u in Player.PLAYERS){
             let other = Player.PLAYERS[u];
@@ -172,7 +182,7 @@ class Client{
 		this.bg_sound.src = 'client/res/sounds/bg.mp3';
 		this.bg_sound.volume = 0.25;
 		this.bg_sound.loop = true;
-        this.bg_sound.play();
+        //this.bg_sound.play();
         
         this.boop_sound = new Audio();
 		this.boop_sound.src = 'client/res/sounds/boop.mp3';
@@ -199,6 +209,17 @@ class Client{
         });
     }
 
+    initWorld(){
+        this.world = new World('World', 'seed');
+        this.worldRenderer = new WorldRenderer(this.world, this.renderer);
+
+        for(let x = -8; x <= 8; x += 8){
+            for(let z = -8; z <= 8; z += 8){
+                this.world.createChunk(new Coord(x, -8, z));
+            }
+        }
+    }
+
     login(){
         let username = document.getElementById('login-username');
         let password = document.getElementById('login-password');
@@ -213,6 +234,7 @@ class Client{
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'block';
                 this.initRenderer();
+                this.initWorld();
 
                 this.player = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
 
@@ -368,7 +390,7 @@ class Client{
         contents.append(elem);
         contents.scrollTop = contents.scrollHeight;
 
-        this.boop_sound.play();
+        //this.boop_sound.play();
     }
 }
 

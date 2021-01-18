@@ -13,6 +13,8 @@ class World{
     chunks = {};
 
     onChunkCreatedCallbacks = [];
+    onChunkDestroyedCallbacks = [];
+    onChunkUpdatedCallbacks = [];
 
     constructor(name, seed){
         this.name = name || 'New World';
@@ -34,8 +36,8 @@ class World{
 					for(let z = coord.z; z < coord.z + World.CHUNK_SIZE; z++){
                         let cell_coord = new Coord(x, y, z);
                         let rand = Math.random();
-                        if(rand < 0.5){
-                            chunk.getCell(cell_coord).setTerrain(null);
+                        if(rand < 0.9){
+                            chunk.getCell(cell_coord).setTerrain(true);
                         }
                     }
                 }
@@ -108,6 +110,18 @@ class World{
     }
     unregisterOnChunkCreatedCallback(callback){
         this.onChunkCreatedCallbacks.remove(callback);
+    }
+    registerOnChunkDestroyedCallback(callback){
+        this.onChunkDestroyedCallbacks.push(callback);
+    }
+    unregisterOnChunkDestroyedCallback(callback){
+        this.onChunkDestroyedCallbacks.remove(callback);
+    }
+    registerOnChunkUpdatedCallback(callback){
+        this.onChunkUpdatedCallbacks.push(callback);
+    }
+    unregisterOnChunkUpdatedCallback(callback){
+        this.onChunkUpdatedCallbacks.remove(callback);
     }
 }
 

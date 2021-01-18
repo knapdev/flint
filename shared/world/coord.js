@@ -20,6 +20,26 @@ class Coord{
 		);
 	}
 
+	getNeighborCoord(direction){
+		switch(direction){
+			case Direction.NORTH:
+				return this.north();
+			case Direction.EAST:
+				return this.east();
+			case Direction.SOUTH:
+				return this.south();
+			case Direction.WEST:
+				return this.west();
+			case Direction.UP:
+				return this.up();
+			case Direction.DOWN:
+				return this.down();
+			default:
+				console.error(direction + ' is not a direction.');
+				return null;
+		}
+	}
+
 	north(){
 		return new Coord(this.x, this.y, this.z - 1);
 	}
@@ -42,6 +62,10 @@ class Coord{
 
 	down(){
 		return new Coord(this.x, this.y - 1, this.z);
+	}
+
+	add(other){
+		return new Coord(this.x + other.x, this.y + other.y, this.z + other.z);
 	}
 
 	getHash(){
