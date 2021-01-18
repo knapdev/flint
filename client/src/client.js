@@ -72,7 +72,7 @@ class Client{
     update(delta){
         Keyboard._update();
 
-        if(document.pointerLockElement == this.renderer.canvas){
+        if(document.body === document.activeElement){
             let key_input = {
                 up: false,
                 down: false,
@@ -194,18 +194,21 @@ class Client{
                 y: evnt.movementY
             });
         });
-        this.renderer.canvas.addEventListener('click', (evnt) => {
+        this.renderer.canvas.addEventListener('mousedown', (evnt) => {
             if(evnt.button == 0){
-                if(document.pointerLockElement !== this.renderer.canvas){
-                    this.renderer.canvas.requestPointerLock();
-                }                  
+                this.renderer.canvas.requestPointerLock();
+                this.socket.emit('set-looking', {
+                    state: true
+                });
             }
         });
-        document.addEventListener('pointerlockchange', (evnt) => {
-            let flag = document.pointerLockElement === this.renderer.canvas;
-            this.socket.emit('set-looking', {
-                state: flag
-            });
+        this.renderer.canvas.addEventListener('mouseup', (evnt) => {
+            if(evnt.button == 0){
+                document.exitPointerLock();
+                this.socket.emit('set-looking', {
+                    state: false
+                });
+            }
         });
     }
 
@@ -302,8 +305,8 @@ class Client{
                             this.socket.emit('chat-msg', {
                                 data: input.value.toString()
                             });
-                            input.value = '';
                         }
+                        input.value = '';
                     }
                 });
 

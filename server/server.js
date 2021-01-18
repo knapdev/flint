@@ -174,8 +174,8 @@ class Server{
             for(let u in Player.PLAYERS){
                 let player = Player.PLAYERS[u];
                 if(player.is_looking == true){
-                    player.rotation.y -= player.look_delta.x * 0.1 * delta;
-                    player.rotation.x -= player.look_delta.y * 0.1 * delta;
+                    player.rotation.y -= player.look_delta.x * 0.15 * delta;
+                    player.rotation.x -= player.look_delta.y * 0.15 * delta;
                     player.rotation.x = Utils.clamp(player.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
                     player.look_delta.x = 0;
                     player.look_delta.y = 0;
@@ -186,8 +186,8 @@ class Server{
 
                 if(player.move_input.magnitude() > 0){
                     player.move_input = player.move_input.normalize();
-                    vel.x = player.move_input.x * 2 * delta;
-                    vel.z = player.move_input.z * 2 * delta;
+                    vel.x = player.move_input.x * 1 * delta;
+                    vel.z = player.move_input.z * 1 * delta;
                 }
 
                 player.position = pos.add(vel);
