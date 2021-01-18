@@ -48,21 +48,6 @@ class Client{
         register_button.addEventListener('click', (evnt) => {
             this.register();
         });
-
-        this.socket.on('player-created', (pack) => {
-            this.player = new Player(pack.uuid, pack.name, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
-    
-            this.socket.emit('player-created-res', {
-                success: true
-            });
-    
-            this.socket.on('join-room', (pack) => {
-                this.joinRoom(pack);
-            });
-        });
-
-        this.then = performance.now();
-        this.frame_id = requestAnimationFrame(this.run.bind(this));
     }
 
     run(now){
@@ -79,7 +64,7 @@ class Client{
     update(delta){
         Keyboard._update();
 
-        if(this.renderer && document.pointerLockElement == this.renderer.canvas){
+        if(document.pointerLockElement == this.renderer.canvas){
             let key_input = {
                 up: false,
                 down: false,
@@ -105,55 +90,53 @@ class Client{
     }
 
     render(){
-        if(this.renderer && this.player){
-            this.renderer.clear();
+        this.renderer.clear();
 
-            this.renderer.shader.bind();
+        this.renderer.shader.bind();
 
-            let cam_player = Player.PLAYERS[this.player.uuid];
-            this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
+        let cam_player = Player.PLAYERS[this.player.uuid];
+        this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
 
-            this.renderer.setTexture(this.grass_texture);
-            {
-                let matrix = Matrix4.create();
-                matrix = Matrix4.translate(matrix, 0, -0.5, 0);
-                matrix = Matrix4.scale(matrix, 256, 1, 256);
-                this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-                this.renderer.drawMesh(this.mesh);
-            }
+        this.renderer.setTexture(this.grass_texture);
+        {
+            let matrix = Matrix4.create();
+            matrix = Matrix4.translate(matrix, 0, -0.5, 0);
+            matrix = Matrix4.scale(matrix, 256, 1, 256);
+            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+            this.renderer.drawMesh(this.mesh);
+        }
 
-            this.renderer.setTexture(this.texture);
-            {
-                let matrix = Matrix4.create();
-                matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
-                this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-                this.renderer.drawMesh(this.mesh);
-            }
-            
-            for(let u in Player.PLAYERS){
-                let other = Player.PLAYERS[u];
-                if(other != null && other.uuid != this.player.uuid){
-                    this.renderer.setTexture(this.guy_texture);
-                    {
-                        let matrix = Matrix4.create();
-                        matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.25, other.position.z);
-                        matrix = Matrix4.rotateY(matrix, other.rotation.y);
-                        matrix = Matrix4.rotateX(matrix, other.rotation.x);
-                        matrix = Matrix4.translate(matrix, 0.0, 0.25, 0.0);
-                        matrix = Matrix4.scale(matrix, 0.5, 0.5, 0.5);
-                        this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-                        this.renderer.drawMesh(this.head_mesh);
-                    }
+        this.renderer.setTexture(this.texture);
+        {
+            let matrix = Matrix4.create();
+            matrix = Matrix4.translate(matrix, 0.0, 0.5, 0.0);
+            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+            this.renderer.drawMesh(this.mesh);
+        }
+        
+        for(let u in Player.PLAYERS){
+            let other = Player.PLAYERS[u];
+            if(other != null && other.uuid != this.player.uuid){
+                this.renderer.setTexture(this.guy_texture);
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.25, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.rotateX(matrix, other.rotation.x);
+                    matrix = Matrix4.translate(matrix, 0.0, 0.25, 0.0);
+                    matrix = Matrix4.scale(matrix, 0.5, 0.5, 0.5);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.head_mesh);
+                }
 
-                    this.renderer.setTexture(this.texture);
-                    {
-                        let matrix = Matrix4.create();
-                        matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.125, other.position.z);
-                        matrix = Matrix4.rotateY(matrix, other.rotation.y);
-                        matrix = Matrix4.scale(matrix, 0.4, 0.25, 0.25);
-                        this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-                        this.renderer.drawMesh(this.mesh);
-                    }
+                this.renderer.setTexture(this.texture);
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.125, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.scale(matrix, 0.4, 0.25, 0.25);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
                 }
             }
         }
@@ -165,8 +148,8 @@ class Client{
         this.shader = new Shader(this.renderer.getContext(), vertShaderSourceString, fragShaderSourceString);
         this.renderer.setShader(this.shader);
 
-        this.renderer.setPerspective(60.0, 0.01, 256.0);
-        this.renderer.setClearColor(0.25, 0.25, 0.25, 1.0);
+        this.renderer.setPerspective(50.0, 0.01, 256.0);
+        this.renderer.setClearColor(0.72, 0.89, 0.99, 1.0);
 
         window.addEventListener('resize', (evnt) => {
             this.renderer.resize();
@@ -208,93 +191,11 @@ class Client{
                 }                  
             }
         });
-
         document.addEventListener('pointerlockchange', (evnt) => {
             let flag = document.pointerLockElement === this.renderer.canvas;
             this.socket.emit('set-looking', {
                 state: flag
             });
-        });
-    }
-
-    joinRoom(pack){
-        this.player.room = pack.room;
-        document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
-
-        this.addEntryToLog({
-            time: pack.time,
-            text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.name + '</span>!'
-        });
-        this.addEntryToLog({
-            time: pack.time,
-            text: pack.motd
-        });
-
-        for(let u in pack.player_list){
-            let pack_data = pack.player_list[u];
-            let other = new Player(pack_data.uuid, pack_data.name, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
-        }
-        this.logUserList(pack);
-
-        this.socket.on('player-connected', (pack) => {
-            let other = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
-            this.addEntryToLog({
-                time: pack.time,
-                text: '<span class="eventlog-username">' + other.name + '</span> connected!'
-            });
-        });
-    
-        this.socket.on('player-disconnected', (pack) => {
-            let other = Player.PLAYERS[pack.uuid];
-            this.addEntryToLog({
-                time: pack.time,
-                text: '<span class="eventlog-username">' + other.name + '</span> disconnected.'
-            });
-            delete Player.PLAYERS[other.uuid];
-        });
-    
-        this.socket.on('log-player-message', (pack) => {
-            this.logUserMessage(pack);
-        });
-    
-        this.socket.on('log-event', (pack) => {
-            this.logEvent(pack);
-        });
-
-        this.socket.on('log-player-list', (pack) => {
-            this.logUserList(pack);
-        });
-        
-        let input = document.getElementById('eventlog-input');
-        input.addEventListener('keyup', (evnt) => {
-            if(evnt.keyCode == 13){
-                if(input.value.length != 0){
-                    this.socket.emit('chat-msg', {
-                        data: input.value.toString()
-                    });
-                    input.value = '';
-                }
-            }
-        });
-
-        this.socket.on('leave-room', (pack) => {
-            this.socket.removeAllListeners('player-connected');
-            this.socket.removeAllListeners('player-disconnected');
-            this.socket.removeAllListeners('log-player-message');
-            this.socket.removeAllListeners('log-event');
-            this.socket.removeAllListeners('log-player-list');
-            Player.PLAYERS = {};
-        });
-
-        this.socket.on('update-players', (pack) => {
-            for(let i in pack){
-                let other_pack = pack[i];
-                let other = Player.PLAYERS[other_pack.uuid];
-                if(other){
-                    other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
-                    other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
-                }
-            }
         });
     }
 
@@ -312,6 +213,80 @@ class Client{
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'block';
                 this.initRenderer();
+
+                this.player = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+
+                for(let u in pack.player_list){
+                    let pack_data = pack.player_list[u];
+                    let other = new Player(pack_data.uuid, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+                }
+
+                document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
+
+                this.addEntryToLog({
+                    time: pack.time,
+                    text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.username + '</span>!'
+                });
+                this.addEntryToLog({
+                    time: pack.time,
+                    text: pack.motd
+                });
+                this.logUserList(pack);
+
+                this.socket.on('player-connected', (pack) => {
+                    let other = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+                    this.addEntryToLog({
+                        time: pack.time,
+                        text: '<span class="eventlog-username">' + other.username + '</span> connected!'
+                    });
+                });
+
+                this.socket.on('player-disconnected', (pack) => {
+                    let other = Player.PLAYERS[pack.uuid];
+                    this.addEntryToLog({
+                        time: pack.time,
+                        text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
+                    });
+                    delete Player.PLAYERS[other.uuid];
+                });
+
+                this.socket.on('update-players', (pack) => {
+                    for(let i in pack){
+                        let other_pack = pack[i];
+                        let other = Player.PLAYERS[other_pack.uuid];
+                        if(other){
+                            other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
+                            other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
+                        }
+                    }
+                });
+
+                this.socket.on('log-player-message', (pack) => {
+                    this.logUserMessage(pack);
+                });
+            
+                this.socket.on('log-event', (pack) => {
+                    this.logEvent(pack);
+                });
+        
+                this.socket.on('log-player-list', (pack) => {
+                    this.logUserList(pack);
+                });
+                
+                let input = document.getElementById('eventlog-input');
+                input.addEventListener('keyup', (evnt) => {
+                    if(evnt.keyCode == 13){
+                        if(input.value.length != 0){
+                            this.socket.emit('chat-msg', {
+                                data: input.value.toString()
+                            });
+                            input.value = '';
+                        }
+                    }
+                });
+
+                this.then = performance.now();
+                this.frame_id = requestAnimationFrame(this.run.bind(this));
             }else{
                 document.getElementById('login-alert').innerText = 'Login unsuccessful. Try again.';
                 username.value = '';
@@ -348,9 +323,9 @@ class Client{
     }
 
     logUserMessage(data){
-        let text = '<span class="eventlog-username">' + data.name + '</span> says, <span class="eventlog-msg">"' + data.text + '"</span>';
+        let text = '<span class="eventlog-username">' + data.username + '</span> says, <span class="eventlog-msg">"' + data.text + '"</span>';
         if(data.type == 'loud'){
-            text = '<span class="eventlog-username">' + data.name + '</span> yells, <span class="eventlog-msg">"' + data.text + '"</span>';
+            text = '<span class="eventlog-username">' + data.username + '</span> yells, <span class="eventlog-msg">"' + data.text + '"</span>';
         }
         
         this.addEntryToLog({
@@ -374,7 +349,7 @@ class Client{
                 msg += ', ';
             }
             let other = Player.PLAYERS[u];
-            msg += '<span class="eventlog-username">' + other.name + '</span>'
+            msg += '<span class="eventlog-username">' + other.username + '</span>'
             if(first == true){
                 first = false;
             }

@@ -18,7 +18,7 @@ class Player{
             if(player.room === room){
                 ret[player.uuid] = {
                     uuid: player.uuid,
-                    name: player.name,
+                    username: player.username,
                     room: player.room,
                     position: {
                         x: player.position.x,
@@ -36,9 +36,9 @@ class Player{
         return ret;
     }
 
-    constructor(uuid, name, room, position, rotation){
+    constructor(uuid, username, room, position, rotation){
         this.uuid = uuid;
-        this.name = name;
+        this.username = username;
         this.room = room;
         this.position = position;
         this.rotation = rotation;
