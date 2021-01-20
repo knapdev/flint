@@ -15,7 +15,10 @@ import Utils from '../shared/math/utils.js';
 import Player from '../shared/player.js';
 
 import World from '../shared/world/world.js';
+import Chunk from '../shared/world/chunk.js';
 import Coord from '../shared/world/coord.js';
+
+import Noise from '../shared/math/noise.js';
 
 class Server{
 
@@ -46,12 +49,28 @@ class Server{
             console.log('Server running...');
         });
 
-        this.world = new World('The Ancient Dawn', 'dord');
-        this.world.registerOnChunkCreatedCallback((chunk) => {
-            console.log('Chunk created!');
-            //send chunk data to appropriate clients?
-        });
-        this.world.createChunk(new Coord(0, 0, 0));
+        this.noise = new Noise();
+        this.noise.seed('dord');
+
+        this.world = new World('The Ancient Dawn');
+        let chunk =  this.generateChunk(this.world, new Coord(0, 0, 0));
+        let chunk2 = this.generateChunk(this.world, new Coord(8, 0, 0));
+        let chunk3 = this.generateChunk(this.world, new Coord(0, 0, 8));
+        let chunk4 = this.generateChunk(this.world, new Coord(8, 0, 8));
+        let chunk5 = this.generateChunk(this.world, new Coord(0, 8, 0));
+        let chunk6 = this.generateChunk(this.world, new Coord(8, 8, 0));
+        let chunk7 = this.generateChunk(this.world, new Coord(0, 8, 8));
+        let chunk8 = this.generateChunk(this.world, new Coord(8, 8, 8));
+
+        
+        this.world.addChunk(chunk);
+        this.world.addChunk(chunk2);
+        this.world.addChunk(chunk3);
+        this.world.addChunk(chunk4);
+        this.world.addChunk(chunk5);
+        this.world.addChunk(chunk6);
+        this.world.addChunk(chunk7);
+        this.world.addChunk(chunk8);
 
         // Start socketio server
         this.io = new IO(server);
@@ -60,7 +79,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), pack.username, 'global', new Vector3((Math.random() * 20) - 10, 0, (Math.random() * 20) - 10), new Vector3());
+                        let player = new Player(UUID(), pack.username, 'global', new Vector3((Math.random() * 16), 10, (Math.random() * 10)), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         socket.on('set-looking', (pack) => {
@@ -96,6 +115,22 @@ class Server{
                             }
                             player.move_input.set(move_input.x, move_input.y, move_input.z);
                         });
+
+                        socket.on('edit-terrain', (pack) => {
+                            let playerCoord = new Coord(player.position.x, player.position.y, player.position.z);
+                            let cell = this.world.getCell(playerCoord);
+                            if(cell){
+                                cell.setTerrain(pack.type);
+                                this.io.emit('terrain-changed', {
+                                    coord: {
+                                        x: playerCoord.x,
+                                        y: playerCoord.y,
+                                        z: playerCoord.z
+                                    },
+                                    type: pack.type
+                                });
+                            }
+                        });
             
                         socket.emit('login-response', {
                             success: true,
@@ -116,7 +151,16 @@ class Server{
                             },
                             player_list: Player.getPlayersInRoom(player.room),
                             world_name: this.world.name,
-                            world_seed: this.world.seed
+                            chunk_data: [
+                                this.world.getChunk(new Coord(0, 0, 0)).pack(),
+                                this.world.getChunk(new Coord(8, 0, 0)).pack(),
+                                this.world.getChunk(new Coord(0, 0, 8)).pack(),
+                                this.world.getChunk(new Coord(8, 0, 8)).pack(),
+                                this.world.getChunk(new Coord(0, 8, 0)).pack(),
+                                this.world.getChunk(new Coord(8, 8, 0)).pack(),
+                                this.world.getChunk(new Coord(0, 8, 8)).pack(),
+                                this.world.getChunk(new Coord(8, 8, 8)).pack()
+                            ]
                         });
 
                         socket.broadcast.emit('player-connected', {
@@ -215,6 +259,24 @@ class Server{
                         z: player.rotation.z
                     }
                 });
+
+                let randCoord = new Coord(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), Math.floor(Math.random() * 16));
+                let cell = this.world.getCell(randCoord);
+                if(cell){
+                    let type = null;
+                    if(Math.random() < 0.5){
+                        type = 1;
+                    }
+                    cell.setTerrain(type);
+                    this.io.emit('terrain-changed', {
+                        coord: {
+                            x: randCoord.x,
+                            y: randCoord.y,
+                            z: randCoord.z
+                        },
+                        type: type
+                    });
+                }
             }
 
             this.io.emit('update-players', pack);
@@ -291,6 +353,30 @@ class Server{
                 type: 'normal'
             });
         }
+    }
+
+    generateChunk(world, coord){
+        let chunk = new Chunk(world, coord);
+        for(let y = coord.y; y < coord.y + World.CHUNK_SIZE; y++){
+            for(let x = coord.x; x < coord.x + World.CHUNK_SIZE; x++){
+                for(let z = coord.z; z < coord.z + World.CHUNK_SIZE; z++){
+                    let cellCoord = new Coord(x - coord.x, y - coord.y, z - coord.z);
+
+                    let height = 0;                        
+                    height += ((this.noise.simplex3(x / 128, 0, z / 128) + 1.0) / 2.0) * 8;
+                    height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 4;
+                    height += ((this.noise.simplex3(x / 8, 0, z / 8) + 1.0) / 2.0) * 2;
+
+                    height = Math.floor(height);
+                    if(y <= height){
+                        chunk.getCell(cellCoord).setTerrain(1);
+                    }else{
+                        chunk.getCell(cellCoord).setTerrain(null);
+                    }
+                }
+            }				
+        }
+        return chunk;
     }
 }
 

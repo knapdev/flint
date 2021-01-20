@@ -18,6 +18,20 @@ class Cell{
     hasTerrain(){
         return (this.terrain != null) ? true : false;
     }
+
+    getAABB(coord){
+		//return new AABB(new Vector3(coord.x, coord.y, coord.z), new Vector3(coord.x + 1, coord.y + 1, coord.z + 1));
+	}
+
+    pack(){
+        return {
+            terrain: this.terrain
+        }
+    }
+
+    unpack(pack){
+        this.terrain = pack.type;
+    }
 }
 
 export default Cell;

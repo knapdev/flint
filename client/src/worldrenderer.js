@@ -51,10 +51,6 @@ class WorldRenderer{
     }
 
     onChunkCreated(chunk){
-        if(this.meshes[chunk.coord.getHash()] != null){
-            console.log('Already have chunk mesh.');
-        }
-
         let mesh = this.generateChunkMesh(chunk);
         this.meshes[chunk.coord.getHash()] = mesh;
     }

@@ -78,6 +78,30 @@ class Chunk{
 
         return false;
     }
+
+    pack(){
+        let pack = {coord: {x: this.coord.x, y: this.coord.y, z: this.coord.z}, cells: []};
+        for(let x = 0; x < World.CHUNK_SIZE; x++){
+            pack.cells[x] = [];
+            for(let y = 0; y < World.CHUNK_SIZE; y++){
+                pack.cells[x][y] = [];
+                for(let z = 0; z < World.CHUNK_SIZE; z++){
+                    pack.cells[x][y][z] = this.getCell(new Coord(x, y, z)).pack();
+                }
+            }
+        }
+        return pack;
+    }
+
+    unpack(pack){
+        for(let x = 0; x < World.CHUNK_SIZE; x++){
+            for(let y = 0; y < World.CHUNK_SIZE; y++){
+                for(let z = 0; z < World.CHUNK_SIZE; z++){
+                    this.getCell(new Coord(x, y, z)).setTerrain(pack.cells[x][y][z].terrain);
+                }
+            }
+        }
+    }
 }
 
 export default Chunk;

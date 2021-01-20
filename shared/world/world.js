@@ -3,7 +3,7 @@
 import Chunk from "./chunk.js";
 import Coord from "./coord.js";
 
-import Noise from '../math/noise.js';
+
 
 class World{
 
@@ -11,72 +11,29 @@ class World{
 
     name = '';
 
-    noise = null;
-    seed = '';
-
     chunks = {};
 
     onChunkCreatedCallbacks = [];
     onChunkDestroyedCallbacks = [];
     onChunkUpdatedCallbacks = [];
 
-    constructor(name, seed){
+    constructor(name){
         this.name = name || 'New World';
-        this.seed = seed || 'random';
-
-        this.noise = new Noise();
-        this.noise.seed(this.seed);
     }
 
     tick(delta){
 
     }
 
-    createChunk(coord){
-        if(this.chunks[coord.getHash()] == undefined){
-            let chunk = new Chunk(this, coord);
-            this.chunks[coord.getHash()] = chunk;
-
-			for(let y = coord.y; y < coord.y + World.CHUNK_SIZE; y++){
-				for(let x = coord.x; x < coord.x + World.CHUNK_SIZE; x++){
-					for(let z = coord.z; z < coord.z + World.CHUNK_SIZE; z++){
-						let cellCoord = new Coord(x, y, z);
-
-						let height = 0;                        
-                        height += ((this.noise.simplex3(x / 128, 0, z / 128) + 1.0) / 2.0) * 8;
-                        height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 4;
-                        height += ((this.noise.simplex3(x / 8, 0, z / 8) + 1.0) / 2.0) * 2;
-
-						height = Math.floor(height);
-						if(y <= height){
-							chunk.getCell(cellCoord).setTerrain(1);
-						}else{
-							chunk.getCell(cellCoord).setTerrain(null);
-						}
-					}
-				}				
-			}
-
-            //load save data
-
-            //broadcast chunk created
-            for(let i = 0; i < this.onChunkCreatedCallbacks.length; i++){
-				this.onChunkCreatedCallbacks[i](chunk);
-			}
-            
-            return chunk;
-        }else{
-            return this.getChunk(coord);
+    addChunk(chunk){
+        if(this.chunks[chunk.coord.getHash()] == undefined){
+            this.chunks[chunk.coord.getHash()] = chunk;
         }
     }
 
     destroyChunk(coord){
         let chunk = this.getChunk(coord);
         if(chunk){
-            //save chunk
-
-            //broadcast chunk destroyed
-
             delete this.chunks[coord.getHash()];
         }
     }

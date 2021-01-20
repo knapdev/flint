@@ -16,6 +16,7 @@ import Coord from '../../shared/world/coord.js';
 
 import Player from '../../shared/player.js';
 import Utils from '../../shared/math/utils.js';
+import Chunk from '../../shared/world/chunk.js';
 
 
 class Client{
@@ -78,7 +79,9 @@ class Client{
                 up: false,
                 down: false,
                 left: false,
-                right: false
+                right: false,
+                space: false,
+                shift: false
             };
             if(Keyboard.getKey(Keyboard.KeyCode.W)){
                 key_input['up'] = true;
@@ -98,8 +101,15 @@ class Client{
             if(Keyboard.getKey(Keyboard.KeyCode.SHIFT)){
                 key_input['shift'] = true;
             }
+            
             if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true || key_input['space'] == true || key_input['shift'] == true){
                 this.socket.emit('key-input', key_input);
+            }
+
+            if(Keyboard.getKeyDown(Keyboard.KeyCode.X)){
+                this.socket.emit('edit-terrain', {
+                    type: 1
+                });
             }
         }
     }
@@ -115,13 +125,13 @@ class Client{
         this.renderer.setTexture(this.crate_texture);
         this.worldRenderer.render();
 
-        this.renderer.setTexture(this.texture);
-        {
-            let matrix = Matrix4.create();
-            matrix = Matrix4.translate(matrix, 0.5, 0.5, 0.5);
-            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-            this.renderer.drawMesh(this.mesh);
-        }
+        // this.renderer.setTexture(this.texture);
+        // {
+        //     let matrix = Matrix4.create();
+        //     matrix = Matrix4.translate(matrix, 0.5, 0.5, 0.5);
+        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+        //     this.renderer.drawMesh(this.mesh);
+        // }
 
         for(let u in Player.PLAYERS){
             let other = Player.PLAYERS[u];
@@ -214,17 +224,22 @@ class Client{
         });
     }
 
-    initWorld(name, seed){
-        this.world = new World(name, seed);
+    initWorld(name, chunk_data){
+        this.world = new World(name);
         this.worldRenderer = new WorldRenderer(this.world, this.renderer);
 
-        //for(let y = 8; y > -8; y -= 8){
-            //for(let x = -16; x <= 16; x += 8){
-                //for(let z = -16; z <= 16; z += 8){
-                    this.world.createChunk(new Coord(0, -8, 0));
-                //}
-            //}
-        //}
+        for(let c in chunk_data){
+            let data = chunk_data[c];
+
+            let chunk = new Chunk(this.world, new Coord(data.coord.x, data.coord.y, data.coord.z));
+            chunk.unpack(data);
+            this.world.addChunk(chunk);            
+        }
+
+        for(let c in this.world.chunks){
+            let chunk = this.world.chunks[c];
+            this.worldRenderer.onChunkCreated(chunk);
+        }
     }
 
     login(){
@@ -241,7 +256,7 @@ class Client{
                 document.getElementById('login-container').style.display = 'none';
                 document.getElementById('game-screen').style.display = 'block';
                 this.initRenderer();
-                this.initWorld(pack.world_name, pack.world_seed);
+                this.initWorld(pack.world_name, pack.chunk_data);
 
                 this.player = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
 
@@ -290,6 +305,13 @@ class Client{
                     }
                 });
 
+                this.socket.on('terrain-changed', (pack) => {
+                    let coord = new Coord(pack.coord.x, pack.coord.y, pack.coord.z);
+                    let chunk = this.world.getChunk(coord);
+                    chunk.getCell(coord).unpack(pack);
+                    this.worldRenderer.onChunkCreated(chunk);
+                });
+
                 this.socket.on('log-player-message', (pack) => {
                     this.logUserMessage(pack);
                 });
@@ -312,7 +334,7 @@ class Client{
                         }
                         input.value = '';
                     }
-                });
+                });                
 
                 this.then = performance.now();
                 this.frame_id = requestAnimationFrame(this.run.bind(this));
