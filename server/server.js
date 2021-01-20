@@ -53,24 +53,14 @@ class Server{
         this.noise.seed('dord');
 
         this.world = new World('The Ancient Dawn');
-        let chunk =  this.generateChunk(this.world, new Coord(0, 0, 0));
-        let chunk2 = this.generateChunk(this.world, new Coord(8, 0, 0));
-        let chunk3 = this.generateChunk(this.world, new Coord(0, 0, 8));
-        let chunk4 = this.generateChunk(this.world, new Coord(8, 0, 8));
-        let chunk5 = this.generateChunk(this.world, new Coord(0, 8, 0));
-        let chunk6 = this.generateChunk(this.world, new Coord(8, 8, 0));
-        let chunk7 = this.generateChunk(this.world, new Coord(0, 8, 8));
-        let chunk8 = this.generateChunk(this.world, new Coord(8, 8, 8));
-
-        
-        this.world.addChunk(chunk);
-        this.world.addChunk(chunk2);
-        this.world.addChunk(chunk3);
-        this.world.addChunk(chunk4);
-        this.world.addChunk(chunk5);
-        this.world.addChunk(chunk6);
-        this.world.addChunk(chunk7);
-        this.world.addChunk(chunk8);
+        for(let y = -16; y < 16; y += 8){
+            for(let x = -32; x < 32; x += 8){
+                for(let z = -32; z < 32; z += 8){
+                    let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
+                    this.world.addChunk(chunk);
+                }
+            }
+        }
 
         // Start socketio server
         this.io = new IO(server);
@@ -79,8 +69,10 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), pack.username, 'global', new Vector3((Math.random() * 16), 10, (Math.random() * 10)), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3((Math.random() * 16), 10, (Math.random() * 10)), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
+
+                        this.world.addPlayer(player);
 
                         socket.on('set-looking', (pack) => {
                             player.is_looking = pack.state;
@@ -117,20 +109,32 @@ class Server{
                         });
 
                         socket.on('edit-terrain', (pack) => {
-                            let playerCoord = new Coord(player.position.x, player.position.y, player.position.z);
-                            let cell = this.world.getCell(playerCoord);
+                            let cell = this.world.getCell(player.selectedCoord);
                             if(cell){
                                 cell.setTerrain(pack.type);
                                 this.io.emit('terrain-changed', {
                                     coord: {
-                                        x: playerCoord.x,
-                                        y: playerCoord.y,
-                                        z: playerCoord.z
+                                        x: player.selectedCoord.x,
+                                        y: player.selectedCoord.y,
+                                        z: player.selectedCoord.z
                                     },
                                     type: pack.type
                                 });
                             }
                         });
+
+                        let chunkDataList = [];
+                        for(let c in this.world.chunks){
+                            let chunk = this.world.chunks[c];
+                            chunkDataList.push(chunk.pack());
+                        }
+
+                        let playersInWorld = {};
+                        for(let p in this.world.players){
+                            let pp = this.world.players[p];
+
+                            playersInWorld[pp.uuid] = pp.pack();
+                        }
             
                         socket.emit('login-response', {
                             success: true,
@@ -149,18 +153,9 @@ class Server{
                                 y: player.rotation.y,
                                 z: player.rotation.z
                             },
-                            player_list: Player.getPlayersInRoom(player.room),
+                            player_list: playersInWorld,
                             world_name: this.world.name,
-                            chunk_data: [
-                                this.world.getChunk(new Coord(0, 0, 0)).pack(),
-                                this.world.getChunk(new Coord(8, 0, 0)).pack(),
-                                this.world.getChunk(new Coord(0, 0, 8)).pack(),
-                                this.world.getChunk(new Coord(8, 0, 8)).pack(),
-                                this.world.getChunk(new Coord(0, 8, 0)).pack(),
-                                this.world.getChunk(new Coord(8, 8, 0)).pack(),
-                                this.world.getChunk(new Coord(0, 8, 8)).pack(),
-                                this.world.getChunk(new Coord(8, 8, 8)).pack()
-                            ]
+                            chunk_data: chunkDataList
                         });
 
                         socket.broadcast.emit('player-connected', {
@@ -192,7 +187,7 @@ class Server{
                             });
             
                             console.log('Player [' + player.username + '] disconnected.');
-                            delete Player.PLAYERS[player.uuid];
+                            this.world.removePlayer(player.uuid);
                         });
                     }else{
                         socket.emit('login-response', {
@@ -223,8 +218,8 @@ class Server{
             let pack = [];
 
             let delta = TICK_RATE / 1000.0;
-            for(let u in Player.PLAYERS){
-                let player = Player.PLAYERS[u];
+            for(let u in this.world.players){
+                let player = this.world.players[u];
                 if(player.is_looking == true){
                     player.rotation.y -= player.look_delta.x * 0.15 * delta;
                     player.rotation.x -= player.look_delta.y * 0.15 * delta;
@@ -246,6 +241,18 @@ class Server{
                 player.position = pos.add(vel);
                 player.move_input.set(0, 0, 0);
 
+                //calculate players selected cell
+                let ax = -Math.sin(player.rotation.y);
+                let ay = Math.tan(player.rotation.x);
+                let az = -Math.cos(player.rotation.y);
+                let v = new Vector3(ax, ay, az).normalize();
+                let cellCoord = new Vector3(player.getEyePos().x + v.x * 128, player.getEyePos().y + v.y * 128, player.getEyePos().z + v.z * 128);
+                let raycastResult = this.world.raytrace(player.getEyePos(), cellCoord);
+                if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
+                    cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
+                }
+                player.selectedCoord = cellCoord;
+
                 pack.push({
                     uuid: player.uuid,
                     position: {
@@ -257,29 +264,36 @@ class Server{
                         x: player.rotation.x,
                         y: player.rotation.y,
                         z: player.rotation.z
+                    },
+                    selectedCoord: {
+                        x: cellCoord.x,
+                        y: cellCoord.y,
+                        z: cellCoord.z
                     }
                 });
 
-                let randCoord = new Coord(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), Math.floor(Math.random() * 16));
-                let cell = this.world.getCell(randCoord);
-                if(cell){
-                    let type = null;
-                    if(Math.random() < 0.5){
-                        type = 1;
-                    }
-                    cell.setTerrain(type);
-                    this.io.emit('terrain-changed', {
-                        coord: {
-                            x: randCoord.x,
-                            y: randCoord.y,
-                            z: randCoord.z
-                        },
-                        type: type
-                    });
-                }
+                this.io.emit('update-players', pack);
+
+                // let randCoord = new Coord(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), Math.floor(Math.random() * 16));
+                // let cell = this.world.getCell(randCoord);
+                // if(cell){
+                //     let type = null;
+                //     if(Math.random() < 0.5){
+                //         type = 1;
+                //     }
+                //     cell.setTerrain(type);
+                //     this.io.emit('terrain-changed', {
+                //         coord: {
+                //             x: randCoord.x,
+                //             y: randCoord.y,
+                //             z: randCoord.z
+                //         },
+                //         type: type
+                //     });
+                // }
             }
 
-            this.io.emit('update-players', pack);
+            
         }, TICK_RATE);
     }
 

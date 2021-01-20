@@ -34,6 +34,7 @@ class Client{
     boop_sound = null;
     
     socket = null;
+    uuid = null;
     player = null;
 
     world = null;
@@ -41,6 +42,8 @@ class Client{
 
     then = 0.0;
     frame_id = null;
+
+    renderWorld = true;
 
     constructor(config){
     }
@@ -106,10 +109,15 @@ class Client{
                 this.socket.emit('key-input', key_input);
             }
 
-            if(Keyboard.getKeyDown(Keyboard.KeyCode.X)){
+            if(Keyboard.getKeyDown(Keyboard.KeyCode.E)){
                 this.socket.emit('edit-terrain', {
-                    type: 1
+                    type: null
                 });
+            }
+
+            if(Keyboard.getKeyDown(Keyboard.KeyCode.Z)){
+                console.log(this.player.selectedCoord);
+                this.renderWorld = !this.renderWorld;
             }
         }
     }
@@ -119,23 +127,26 @@ class Client{
 
         this.renderer.shader.bind();        
 
-        let cam_player = Player.PLAYERS[this.player.uuid];
-        this.renderer.setCamera(new Vector3(cam_player.position.x, cam_player.position.y + 0.5, cam_player.position.z), cam_player.rotation);
+        let player = this.world.getPlayer(this.uuid);
+        this.renderer.setCamera(new Vector3(player.position.x, player.position.y + 0.5, player.position.z), player.rotation);
 
-        this.renderer.setTexture(this.crate_texture);
-        this.worldRenderer.render();
+        if(this.renderWorld){
+            this.renderer.setTexture(this.crate_texture);
+            this.worldRenderer.render();
+        }
+        
+        this.renderer.setTexture(this.texture);
+        {
+            let matrix = Matrix4.create();
+            matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
+            matrix = Matrix4.scale(matrix, 1.01, 1.01, 1.01);
+            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+            this.renderer.drawMesh(this.mesh);
+        }
 
-        // this.renderer.setTexture(this.texture);
-        // {
-        //     let matrix = Matrix4.create();
-        //     matrix = Matrix4.translate(matrix, 0.5, 0.5, 0.5);
-        //     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-        //     this.renderer.drawMesh(this.mesh);
-        // }
-
-        for(let u in Player.PLAYERS){
-            let other = Player.PLAYERS[u];
-            if(other != null && other.uuid != this.player.uuid){
+        for(let u in this.world.players){
+            let other = this.world.players[u];
+            if(other != null && other.uuid != this.uuid){
                 this.renderer.setTexture(this.guy_texture);
                 {
                     let matrix = Matrix4.create();
@@ -258,7 +269,10 @@ class Client{
                 this.initRenderer();
                 this.initWorld(pack.world_name, pack.chunk_data);
 
-                this.player = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+                this.player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+                this.uuid = pack.uuid;
+
+                this.world.addPlayer(this.player);
 
                 for(let u in pack.player_list){
                     let pack_data = pack.player_list[u];
@@ -286,21 +300,24 @@ class Client{
                 });
 
                 this.socket.on('player-disconnected', (pack) => {
-                    let other = Player.PLAYERS[pack.uuid];
+                    let other = this.world.getPlayer(pack.uuid);
                     this.addEntryToLog({
                         time: pack.time,
                         text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
                     });
-                    delete Player.PLAYERS[other.uuid];
+                    this.world.removePlayer(pack.uuid);
                 });
 
                 this.socket.on('update-players', (pack) => {
                     for(let i in pack){
                         let other_pack = pack[i];
-                        let other = Player.PLAYERS[other_pack.uuid];
+                        let other = this.world.getPlayer(other_pack.uuid);
                         if(other){
                             other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
                             other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
+                            other.selectedCoord.x = other_pack.selectedCoord.x;
+                            other.selectedCoord.y = other_pack.selectedCoord.y;
+                            other.selectedCoord.z = other_pack.selectedCoord.z;
                         }
                     }
                 });
@@ -395,11 +412,11 @@ class Client{
     logUserList(data){
         let msg = '';        
         let first = true;
-        for(let u in Player.PLAYERS){
+        for(let u in this.world.players){
             if(first == false){
                 msg += ', ';
             }
-            let other = Player.PLAYERS[u];
+            let other = this.world.players[u];
             msg += '<span class="eventlog-username">' + other.username + '</span>'
             if(first == true){
                 first = false;
@@ -407,7 +424,7 @@ class Client{
         }
         this.addEntryToLog({
             time: data.time,
-            text: 'Users: ' + msg + ' (Total: ' + Player.getPlayerCount() + ')'
+            text: 'Users: ' + msg + ' (Total: ' + this.world.players.length + ')'
         });
     }
 
