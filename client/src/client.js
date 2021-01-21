@@ -19,6 +19,8 @@ import Player from '../../shared/player.js';
 import Utils from '../../shared/math/utils.js';
 import Chunk from '../../shared/world/chunk.js';
 
+import Stats from './utils/stats.js';
+
 
 class Client{
 
@@ -48,11 +50,12 @@ class Client{
 
     renderWorld = true;
 
+    stats = null;
+
     constructor(config){
     }
 
     start(){
-        
         window.addEventListener('contextmenu', (evnt) => {
             evnt.preventDefault();
             return false;
@@ -76,8 +79,12 @@ class Client{
         let delta = (now - this.then) / 1000.0;
         let fps = (1.0 / delta);
 
+        this.stats.begin();
+
         this.update(delta);
         this.render();
+
+        this.stats.end();
 
         this.then = now;
         this.frame_id = requestAnimationFrame(this.run.bind(this));
@@ -179,12 +186,11 @@ class Client{
             }
         }
 
-        // UI
+        // UI (SLOW!!! Should only update when the player actually changes coords!)
         document.getElementById('coords').innerText =
             'x:' + Math.floor(player.position.x) +
             ' y:' + Math.floor(player.position.y) +
             ' z:' + Math.floor(player.position.z);
-        
     }
 
     initRenderer(){
@@ -253,6 +259,10 @@ class Client{
                 });
             }
         });
+
+        this.stats = new Stats();
+        this.stats.showPanel(0);
+        document.body.appendChild(this.stats.dom);
     }
 
     initWorld(name, chunk_data){
