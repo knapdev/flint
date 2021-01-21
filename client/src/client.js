@@ -130,12 +130,11 @@ class Client{
         let player = this.world.getPlayer(this.uuid);
         this.renderer.setCamera(new Vector3(player.position.x, player.position.y + 0.5, player.position.z), player.rotation);
 
+        this.renderer.setTexture(this.texture);
         if(this.renderWorld){
-            this.renderer.setTexture(this.crate_texture);
             this.worldRenderer.render();
         }
         
-        this.renderer.setTexture(this.texture);
         {
             let matrix = Matrix4.create();
             matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
@@ -704,7 +703,7 @@ function generateHeadMesh(gl){
 
 let vertShaderSourceString = `#version 300 es
 
-	precision mediump float;
+	precision lowp float;
 
 	uniform mat4 u_projection;
 	uniform mat4 u_view;
