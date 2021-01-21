@@ -54,8 +54,8 @@ class Server{
 
         this.world = new World('The Ancient Dawn');
         for(let y = 0; y < 64; y += 8){
-            for(let x = -16; x < 16; x += 8){
-                for(let z = -16; z < 16; z += 8){
+            for(let x = 0; x < 32; x += 8){
+                for(let z = 0; z < 32; z += 8){
                     let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
                     this.world.addChunk(chunk);
                 }
@@ -69,7 +69,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(0, 64, 0), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 64, 16.5), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         this.world.addPlayer(player);
@@ -106,17 +106,19 @@ class Server{
                         });
 
                         socket.on('edit-terrain', (pack) => {
-                            let cell = this.world.getCell(player.selectedCoord);
-                            if(cell){
-                                cell.setTerrain(pack.type);
-                                this.io.emit('terrain-changed', {
-                                    coord: {
-                                        x: player.selectedCoord.x,
-                                        y: player.selectedCoord.y,
-                                        z: player.selectedCoord.z
-                                    },
-                                    type: pack.type
-                                });
+                            if(player.selectedCoord !== null){
+                                let cell = this.world.getCell(player.selectedCoord);
+                                if(cell){
+                                    cell.setTerrain(pack.type);
+                                    this.io.emit('terrain-changed', {
+                                        coord: {
+                                            x: player.selectedCoord.x,
+                                            y: player.selectedCoord.y,
+                                            z: player.selectedCoord.z
+                                        },
+                                        type: pack.type
+                                    });
+                                }
                             }
                         });
 
@@ -226,6 +228,15 @@ class Server{
                     player.velocity.y = 0;
                 }
 
+                let selected = null;
+                if(player.selectedCoord != null){
+                    selected = {
+                        x: player.selectedCoord.x,
+                        y: player.selectedCoord.y,
+                        z: player.selectedCoord.z
+                    };
+                }
+
                 pack.push({
                     uuid: player.uuid,
                     position: {
@@ -238,11 +249,7 @@ class Server{
                         y: player.rotation.y,
                         z: player.rotation.z
                     },
-                    selectedCoord: {
-                        x: player.selectedCoord.x,
-                        y: player.selectedCoord.y,
-                        z: player.selectedCoord.z
-                    }
+                    selectedCoord: selected
                 });
 
                 this.io.emit('update-players', pack);

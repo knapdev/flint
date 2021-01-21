@@ -38,13 +38,13 @@ class Player{
 
         if(this.isGrounded == false){
             vel.y -= 1 * delta;
-            if(vel.y <= -2) vel.y = -2;
+            if(vel.y <= -1) vel.y = -1;
         }
 
         if(this.move_input.magnitude() > 0){
             this.move_input = this.move_input.normalize();
-            vel.x = this.move_input.x * 1 * delta;
-            vel.z = this.move_input.z * 1 * delta;
+            vel.x = this.move_input.x * 1.4 * delta;
+            vel.z = this.move_input.z * 1.4 * delta;
         }else{
             vel.x = 0;
             vel.z = 0;
@@ -52,6 +52,20 @@ class Player{
 
         this.position = this.resolveCollisions(pos, vel);
         this.move_input.set(0, 0, 0);
+
+        //Temporary bounds checking
+        if(this.position.x <= 0){
+            this.position.x = 0;
+        }
+        if(this.position.x >= 31.99){
+            this.position.x = 31.99;
+        }
+        if(this.position.z <= 0){
+            this.position.z = 0;
+        }
+        if(this.position.z >= 31.99){
+            this.position.z = 31.99;
+        }
 
         //calculate players selected cell
         let ax = -Math.sin(this.rotation.y);
@@ -62,13 +76,15 @@ class Player{
         let raycastResult = this.world.raytrace(this.getEyePos(), cellCoord);
         if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
             cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
+        }else{
+            cellCoord = null;
         }
         this.selectedCoord = cellCoord;
     }
 
     jump(){
         if(this.isGrounded){
-            this.velocity.y = 0.35;
+            this.velocity.y = 0.32;
         }
     }
 
@@ -102,6 +118,7 @@ class Player{
 
             if(this.aabb.intersectsAABB(cellAABB)){
                 //console.log('up');
+                this.velocity.y = 0;
                 position.y = cellAABB.cornerA.y - 0.75;
                 velocity.y = 0;
                 //console.log(position.y);

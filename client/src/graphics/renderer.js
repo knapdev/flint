@@ -9,6 +9,7 @@ import Utils from '../../../shared/math/utils.js'
 class Renderer {
 	constructor(canvas_id, container_id){
 		this.canvas = document.createElement(canvas_id);
+		this.canvas.id = 'canvas';
 		let container = container_id != undefined ? document.getElementById(container_id) : document.body;
 		container.prepend(this.canvas);
 		try{

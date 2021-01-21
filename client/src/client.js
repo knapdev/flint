@@ -9,6 +9,7 @@ import Matrix4 from '../../shared/math/matrix4.js';
 import Vector3 from '../../shared/math/vector3.js';
 
 import Keyboard from './input/keyboard.js';
+import Mouse from './input/mouse.js';
 
 import World from '../../shared/world/world.js';
 import WorldRenderer from './worldrenderer.js';
@@ -51,6 +52,12 @@ class Client{
     }
 
     start(){
+        
+        window.addEventListener('contextmenu', (evnt) => {
+            evnt.preventDefault();
+            return false;
+        });
+
         console.log('Client started.');
         this.socket = io();
 
@@ -78,6 +85,7 @@ class Client{
 
     update(delta){
         Keyboard._update();
+        Mouse._update();
 
         if(document.body === document.activeElement){
             let key_input = {
@@ -107,7 +115,7 @@ class Client{
                 this.socket.emit('key-input', key_input);
             }
 
-            if(Keyboard.getKeyDown(Keyboard.KeyCode.E)){
+            if(Mouse.getButtonDown(Mouse.Button.RIGHT)){
                 this.socket.emit('edit-terrain', {
                     type: null
                 });
@@ -128,18 +136,20 @@ class Client{
         let player = this.world.getPlayer(this.uuid);
         this.renderer.setCamera(new Vector3(player.position.x, player.position.y + 0.5, player.position.z), player.rotation);
 
-        this.renderer.setTexture(this.texture);
+        this.renderer.setTexture(this.grass_texture);
         if(this.renderWorld){
             this.worldRenderer.render();
         }
         
-        this.renderer.setTexture(this.selection_texture);
-        {
-            let matrix = Matrix4.create();
-            matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
-            matrix = Matrix4.scale(matrix, 1.01, 1.01, 1.01);
-            this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
-            this.renderer.drawMesh(this.mesh);
+        if(player.selectedCoord !== null){
+            this.renderer.setTexture(this.selection_texture);
+            {
+                let matrix = Matrix4.create();
+                matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
+                matrix = Matrix4.scale(matrix, 1.01, 1.01, 1.01);
+                this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                this.renderer.drawMesh(this.mesh);
+            }
         }
 
         for(let u in this.world.players){
@@ -210,7 +220,9 @@ class Client{
         
         this.boop_sound = new Audio();
 		this.boop_sound.src = 'client/res/sounds/boop.mp3';
-		this.boop_sound.volume = 0.25;
+        this.boop_sound.volume = 0.25;
+        
+        Mouse._init();
 
         this.renderer.canvas.addEventListener('mousemove', (evnt) => {
             this.socket.emit('set-look-delta', {
@@ -318,9 +330,16 @@ class Client{
                         if(other){
                             other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
                             other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
-                            other.selectedCoord.x = other_pack.selectedCoord.x;
-                            other.selectedCoord.y = other_pack.selectedCoord.y;
-                            other.selectedCoord.z = other_pack.selectedCoord.z;
+                            if(other_pack.selectedCoord == null){
+                                other.selectedCoord = null;
+                            }else{
+                                other.selectedCoord = new Coord(
+                                    other_pack.selectedCoord.x,
+                                    other_pack.selectedCoord.y,
+                                    other_pack.selectedCoord.z
+                                );
+                            }
+                            
                         }
                     }
                 });
