@@ -192,6 +192,23 @@ class Client{
             'x:' + Math.floor(player.position.x) +
             ' y:' + Math.floor(player.position.y) +
             ' z:' + Math.floor(player.position.z);
+
+        if(player.selectedCoordInside !== null){
+            document.getElementById('selected-inside').innerText = 'SI - ' + 
+                'x:' + Math.floor(player.selectedCoordInside.x) +
+                ' y:' + Math.floor(player.selectedCoordInside.y) +
+                ' z:' + Math.floor(player.selectedCoordInside.z);
+        }else{
+            document.getElementById('selected-inside').innerText = '';
+        }
+        if(player.selectedCoordOutside !== null){
+            document.getElementById('selected-outside').innerText = 'SO - ' + 
+                'x:' + Math.floor(player.selectedCoordOutside.x) +
+                ' y:' + Math.floor(player.selectedCoordOutside.y) +
+                ' z:' + Math.floor(player.selectedCoordOutside.z);
+        }else{
+            document.getElementById('selected-outside').innerText = '';
+        }
     }
 
     initRenderer(){
@@ -355,6 +372,16 @@ class Client{
                                     other_pack.selectedCoordInside.x,
                                     other_pack.selectedCoordInside.y,
                                     other_pack.selectedCoordInside.z
+                                );
+                            }
+
+                            if(other_pack.selectedCoordOutside == null){
+                                other.selectedCoordOutside = null;
+                            }else{
+                                other.selectedCoordOutside = new Coord(
+                                    other_pack.selectedCoordOutside.x,
+                                    other_pack.selectedCoordOutside.y,
+                                    other_pack.selectedCoordOutside.z
                                 );
                             }
                             

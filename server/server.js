@@ -69,7 +69,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 64, 16.5), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 20, 16.5), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         this.world.addPlayer(player);
@@ -239,9 +239,9 @@ class Server{
                 player.tick(delta);
 
                 if(player.position.y < 0){
-                    player.position.y = 32;
-                    player.position.x = 0;
-                    player.position.z = 0;
+                    player.position.y = 20;
+                    player.position.x = 16.5;
+                    player.position.z = 16.5;
                     player.velocity.y = 0;
                 }
 
@@ -251,6 +251,15 @@ class Server{
                         x: player.selectedCoordInside.x,
                         y: player.selectedCoordInside.y,
                         z: player.selectedCoordInside.z
+                    };
+                }
+
+                let selectedOut = null;
+                if(player.selectedCoordOutside != null){
+                    selectedOut = {
+                        x: player.selectedCoordOutside.x,
+                        y: player.selectedCoordOutside.y,
+                        z: player.selectedCoordOutside.z
                     };
                 }
 
@@ -266,7 +275,8 @@ class Server{
                         y: player.rotation.y,
                         z: player.rotation.z
                     },
-                    selectedCoordInside: selected
+                    selectedCoordInside: selected,
+                    selectedCoordOutside: selectedOut
                 });
 
                 this.io.emit('update-players', pack);
