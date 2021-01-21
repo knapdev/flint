@@ -276,7 +276,8 @@ class Client{
 
                 for(let u in pack.player_list){
                     let pack_data = pack.player_list[u];
-                    let other = new Player(pack_data.uuid, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+                    let other = new Player(pack_data.uuid, this.world, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+                    this.world.addPlayer(other);
                 }
 
                 document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
@@ -292,7 +293,8 @@ class Client{
                 this.logUserList(pack);
 
                 this.socket.on('player-connected', (pack) => {
-                    let other = new Player(pack.uuid, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+                    let other = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+                    this.world.addPlayer(other);
                     this.addEntryToLog({
                         time: pack.time,
                         text: '<span class="eventlog-username">' + other.username + '</span> connected!'
@@ -412,11 +414,13 @@ class Client{
     logUserList(data){
         let msg = '';        
         let first = true;
+        let count = 0;
         for(let u in this.world.players){
             if(first == false){
                 msg += ', ';
             }
             let other = this.world.players[u];
+            count++;
             msg += '<span class="eventlog-username">' + other.username + '</span>'
             if(first == true){
                 first = false;
@@ -424,7 +428,7 @@ class Client{
         }
         this.addEntryToLog({
             time: data.time,
-            text: 'Users: ' + msg + ' (Total: ' + this.world.players.length + ')'
+            text: 'Users: ' + msg + ' (Total: ' + count + ')'
         });
     }
 
