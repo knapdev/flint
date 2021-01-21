@@ -53,6 +53,51 @@ class WorldRenderer{
     onChunkCreated(chunk){
         let mesh = this.generateChunkMesh(chunk);
         this.meshes[chunk.coord.getHash()] = mesh;
+
+        let northChunk = this.world.getChunk(new Coord(chunk.coord.x, chunk.coord.y, chunk.coord.z - World.CHUNK_SIZE));
+		if(northChunk){
+			let otherChunkId = northChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(northChunk);
+			}
+        }
+        let southChunk = this.world.getChunk(new Coord(chunk.coord.x, chunk.coord.y, chunk.coord.z + World.CHUNK_SIZE));
+		if(southChunk){
+			let otherChunkId = southChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(southChunk);
+			}
+        }
+        let eastChunk = this.world.getChunk(new Coord(chunk.coord.x + World.CHUNK_SIZE, chunk.coord.y, chunk.coord.z));
+		if(eastChunk){
+			let otherChunkId = eastChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(eastChunk);
+			}
+        }
+        let westChunk = this.world.getChunk(new Coord(chunk.coord.x - World.CHUNK_SIZE, chunk.coord.y, chunk.coord.z));
+		if(westChunk){
+			let otherChunkId = westChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(westChunk);
+			}
+        }
+        
+        let upChunk = this.world.getChunk(new Coord(chunk.coord.x, chunk.coord.y + World.CHUNK_SIZE, chunk.coord.z));
+		if(upChunk){
+			let otherChunkId = upChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(upChunk);
+			}
+        }
+        
+        let downChunk = this.world.getChunk(new Coord(chunk.coord.x, chunk.coord.y - World.CHUNK_SIZE, chunk.coord.z));
+		if(downChunk){
+			let otherChunkId = downChunk.coord.getHash();
+			if(this.meshes[otherChunkId] != null){
+				this.meshes[otherChunkId] = this.generateChunkMesh(downChunk);
+			}
+		}
     }
 
     onChunkDestroyed(chunk){

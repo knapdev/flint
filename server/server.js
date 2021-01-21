@@ -53,9 +53,9 @@ class Server{
         this.noise.seed('dord');
 
         this.world = new World('The Ancient Dawn');
-        for(let y = -16; y < 16; y += 8){
-            for(let x = -32; x < 32; x += 8){
-                for(let z = -32; z < 32; z += 8){
+        for(let y = -32; y < 32; y += 8){
+            for(let x = -16; x < 16; x += 8){
+                for(let z = -16; z < 16; z += 8){
                     let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
                     this.world.addChunk(chunk);
                 }

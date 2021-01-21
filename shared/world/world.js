@@ -143,7 +143,7 @@ class World{
 		if(cell !== null && cell.getAABB(cellCoord) !== null){
 			let result = cell.getAABB(cellCoord).intersectsLine(start, end);
 			if(result !== null){
-				console.log('return first cell');
+				//console.log('return first cell');
 				return result;
 			}
 		}
