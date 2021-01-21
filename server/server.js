@@ -220,38 +220,7 @@ class Server{
             let delta = TICK_RATE / 1000.0;
             for(let u in this.world.players){
                 let player = this.world.players[u];
-                if(player.is_looking == true){
-                    player.rotation.y -= player.look_delta.x * 0.15 * delta;
-                    player.rotation.x -= player.look_delta.y * 0.15 * delta;
-                    player.rotation.x = Utils.clamp(player.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
-                    player.look_delta.x = 0;
-                    player.look_delta.y = 0;
-                }
-
-                let vel = new Vector3();
-                let pos = player.position;
-
-                if(player.move_input.magnitude() > 0){
-                    player.move_input = player.move_input.normalize();
-                    vel.x = player.move_input.x * 3 * delta;
-                    vel.y = player.move_input.y * 3 * delta;
-                    vel.z = player.move_input.z * 3 * delta;
-                }
-
-                player.position = pos.add(vel);
-                player.move_input.set(0, 0, 0);
-
-                //calculate players selected cell
-                let ax = -Math.sin(player.rotation.y);
-                let ay = Math.tan(player.rotation.x);
-                let az = -Math.cos(player.rotation.y);
-                let v = new Vector3(ax, ay, az).normalize();
-                let cellCoord = new Vector3(player.getEyePos().x + v.x * 128, player.getEyePos().y + v.y * 128, player.getEyePos().z + v.z * 128);
-                let raycastResult = this.world.raytrace(player.getEyePos(), cellCoord);
-                if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
-                    cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
-                }
-                player.selectedCoord = cellCoord;
+                player.tick(delta);
 
                 pack.push({
                     uuid: player.uuid,
@@ -266,31 +235,13 @@ class Server{
                         z: player.rotation.z
                     },
                     selectedCoord: {
-                        x: cellCoord.x,
-                        y: cellCoord.y,
-                        z: cellCoord.z
+                        x: player.selectedCoord.x,
+                        y: player.selectedCoord.y,
+                        z: player.selectedCoord.z
                     }
                 });
 
                 this.io.emit('update-players', pack);
-
-                // let randCoord = new Coord(Math.floor(Math.random() * 16), Math.floor(Math.random() * 16), Math.floor(Math.random() * 16));
-                // let cell = this.world.getCell(randCoord);
-                // if(cell){
-                //     let type = null;
-                //     if(Math.random() < 0.5){
-                //         type = 1;
-                //     }
-                //     cell.setTerrain(type);
-                //     this.io.emit('terrain-changed', {
-                //         coord: {
-                //             x: randCoord.x,
-                //             y: randCoord.y,
-                //             z: randCoord.z
-                //         },
-                //         type: type
-                //     });
-                // }
             }
 
             
