@@ -38,12 +38,13 @@ class Player{
 
         if(this.isGrounded == false){
             vel.y -= 1 * delta;
+            if(vel.y <= -2) vel.y = -2;
         }
 
         if(this.move_input.magnitude() > 0){
             this.move_input = this.move_input.normalize();
-            vel.x = this.move_input.x * 3 * delta;
-            vel.z = this.move_input.z * 3 * delta;
+            vel.x = this.move_input.x * 1 * delta;
+            vel.z = this.move_input.z * 1 * delta;
         }else{
             vel.x = 0;
             vel.z = 0;
@@ -67,7 +68,7 @@ class Player{
 
     jump(){
         if(this.isGrounded){
-            this.velocity.y = 0.3;
+            this.velocity.y = 0.35;
         }
     }
 

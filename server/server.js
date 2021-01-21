@@ -53,7 +53,7 @@ class Server{
         this.noise.seed('dord');
 
         this.world = new World('The Ancient Dawn');
-        for(let y = -32; y < 32; y += 8){
+        for(let y = 0; y < 64; y += 8){
             for(let x = -16; x < 16; x += 8){
                 for(let z = -16; z < 16; z += 8){
                     let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
@@ -69,7 +69,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3((Math.random() * 16), 16, (Math.random() * 10)), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(0, 64, 0), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         this.world.addPlayer(player);
@@ -220,9 +220,9 @@ class Server{
                 player.tick(delta);
 
                 if(player.position.y < 0){
-                    player.position.y = 16;
-                    player.position.x = 8;
-                    player.position.z = 8;
+                    player.position.y = 32;
+                    player.position.x = 0;
+                    player.position.z = 0;
                     player.velocity.y = 0;
                 }
 
@@ -332,9 +332,9 @@ class Server{
                     let cellCoord = new Coord(x - coord.x, y - coord.y, z - coord.z);
 
                     let height = 0;                        
-                    height += ((this.noise.simplex3(x / 128, 0, z / 128) + 1.0) / 2.0) * 8;
+                    height += ((this.noise.simplex3(x / 512, 0, z / 512) + 1.0) / 2.0) * 16;
+                    height += ((this.noise.simplex3(x / 64, 0, z / 64) + 1.0) / 2.0) * 8;
                     height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 4;
-                    height += ((this.noise.simplex3(x / 8, 0, z / 8) + 1.0) / 2.0) * 2;
 
                     height = Math.floor(height);
                     if(y <= height){
