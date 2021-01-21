@@ -69,7 +69,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 20, 16.5), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 36, 16.5), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         this.world.addPlayer(player);
@@ -239,7 +239,7 @@ class Server{
                 player.tick(delta);
 
                 if(player.position.y < 0){
-                    player.position.y = 20;
+                    player.position.y = 36;
                     player.position.x = 16.5;
                     player.position.z = 16.5;
                     player.velocity.y = 0;
@@ -367,8 +367,8 @@ class Server{
 
                     let height = 0;                        
                     height += ((this.noise.simplex3(x / 512, 0, z / 512) + 1.0) / 2.0) * 16;
-                    height += ((this.noise.simplex3(x / 64, 0, z / 64) + 1.0) / 2.0) * 8;
-                    height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 4;
+                    height += ((this.noise.simplex3(x / 32, 0, z / 32) + 1.0) / 2.0) * 12;
+                    height += ((this.noise.simplex3(x / 16, 0, z / 16) + 1.0) / 2.0) * 8;
 
                     height = Math.floor(height);
                     if(y <= height){

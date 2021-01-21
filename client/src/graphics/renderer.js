@@ -3,6 +3,7 @@
 import Matrix4 from '../../../shared/math/matrix4.js'
 
 import Shader from './shader.js'
+import Mesh from './mesh.js';
 
 import Utils from '../../../shared/math/utils.js'
 
@@ -133,6 +134,54 @@ class Renderer {
 		let offset = 0;
 
 		this.gl.drawElements(primitiveType, count, type, offset);
+	}
+
+	drawAABB(aabb){
+		let width = Math.abs(aabb.cornerA.x - aabb.cornerB.x);
+		let height = Math.abs(aabb.cornerA.y - aabb.cornerB.y);
+		let depth = Math.abs(aabb.cornerA.z - aabb.cornerB.z);
+
+		let halfWidth = width/2;
+		let halfHeight = height/2;
+		let halfDepth = depth/2;
+
+		let positions = [
+			-halfWidth, -halfHeight, halfDepth,
+			halfWidth, -halfHeight, halfDepth,
+			halfWidth, -halfHeight, -halfDepth,
+			-halfWidth, -halfHeight, -halfDepth,
+
+			-halfWidth, halfHeight, halfDepth,
+			halfWidth, halfHeight, halfDepth,
+			halfWidth, halfHeight, -halfDepth,
+			-halfWidth, halfHeight, -halfDepth
+		];
+		let normals = [];
+		let uvs = [
+			0, 0,
+			0, 0,
+			0, 0,
+			0, 0,
+
+			0, 0,
+			0, 0,
+			0, 0,
+			0, 0
+		];
+		let indices = [
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7
+		];
+		//let mesh = loadMesh(this.renderer.gl, indices, positions, uvs, colors);
+		let mesh = new Mesh(this.gl, indices, positions, normals, uvs);
+		{
+			let mat = Matrix4.create();
+			mat = Matrix4.translate(mat, aabb.cornerA.x + halfWidth, aabb.cornerA.y + halfHeight, aabb.cornerA.z + halfDepth);
+			this.shader.setUniformMatrix4fv('u_model', mat);
+			this.drawMesh(mesh, this.gl.LINES);
+		}
+		//this.gl.lineWidth(lw);
 	}
 }
 

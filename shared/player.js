@@ -73,8 +73,8 @@ class Player{
         let ay = Math.tan(this.rotation.x);
         let az = -Math.cos(this.rotation.y);
         let v = new Vector3(ax, ay, az).normalize();
-        let cellCoord = new Vector3(this.getEyePos().x + v.x * 128, this.getEyePos().y + v.y * 128, this.getEyePos().z + v.z * 128);
-        let cellCoordOut = new Vector3(this.getEyePos().x + v.x * 128, this.getEyePos().y + v.y * 128, this.getEyePos().z + v.z * 128);
+        let cellCoord = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
+        let cellCoordOut = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
         let raycastResult = this.world.raytrace(this.getEyePos(), cellCoord);
         if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
             cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
@@ -100,19 +100,23 @@ class Player{
         let coord = new Coord(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
 
         // check vertical (down) collision
+        let potentials = [];
+        for(let x = coord.x - 1; x <= coord.x + 1; x++){
+			for(let z = coord.z - 1; z <= coord.z + 1; z++){
+                let cellBelow = this.world.getCell(new Coord(x, coord.y - 1, z));
+                if((cellBelow && cellBelow.getTerrain() != null)){
+                    potentials.push(new AABB(new Vector3(x, coord.y - 1, z), new Vector3(x + 1, coord.y, z + 1)))
+                }                
+            }
+        }
         this.isGrounded = false;
-        let cellBelow = this.world.getCell(new Coord(coord.x, coord.y - 1, coord.z));
-        if((cellBelow && cellBelow.getTerrain() != null)){
-            let cellAABB = new AABB(new Vector3(coord.x, coord.y - 1, coord.z), new Vector3(coord.x + 1, coord.y, coord.z + 1))
-
-			if(this.aabb.intersectsAABB(cellAABB)){
-				//console.log('down');
-                this.isGrounded = true;
-                this.velocity.y = 0;
+        for(let i = 0; i < potentials.length; i++){
+            let cellAABB = potentials[i];
+            if(this.aabb.intersectsAABB(cellAABB)){
 				position.y = cellAABB.cornerB.y;
                 velocity.y = 0;
-                
-				//console.log(position.y);
+                this.velocity.y = 0;
+                this.isGrounded = true;
 			}
         }
 

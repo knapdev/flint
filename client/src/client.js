@@ -21,6 +21,8 @@ import Chunk from '../../shared/world/chunk.js';
 
 import Stats from './utils/stats.js';
 
+import AABB from '../../shared/physics/aabb.js';
+
 
 class Client{
 
@@ -34,6 +36,7 @@ class Client{
     grass_texture = null;
     crate_texture = null;
     selection_texture = null;
+    white_texture = null;
 
     bg_sound = null;
     boop_sound = null;
@@ -144,7 +147,7 @@ class Client{
         let player = this.world.getPlayer(this.uuid);
         this.renderer.setCamera(new Vector3(player.position.x, player.position.y + 0.5, player.position.z), player.rotation);
 
-        this.renderer.setTexture(this.grass_texture);
+        this.renderer.setTexture(this.texture);
         if(this.renderWorld){
             this.worldRenderer.render();
         }
@@ -184,6 +187,11 @@ class Client{
                     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
                     this.renderer.drawMesh(this.mesh);
                 }
+
+                //aabb
+                let aabb = new AABB(new Vector3(other.position.x - 0.25, other.position.y, other.position.z - 0.25),
+                                new Vector3(other.position.x + 0.25, other.position.y + 0.75, other.position.z + 0.25));
+                this.renderer.drawAABB(aabb);
             }
         }
 
@@ -219,6 +227,8 @@ class Client{
 
         this.renderer.setPerspective(50.0, 0.01, 256.0);
         this.renderer.setClearColor(0.05, 0.05, 0.1, 1.0);
+        //this.renderer.setClearColor(0.60, 0.80, 0.95);
+        //this.renderer.setClearColor(0.99, 0.70, 0.70);
 
         window.addEventListener('resize', (evnt) => {
             this.renderer.resize();
@@ -241,6 +251,9 @@ class Client{
         });
         Texture.load(this.renderer.getContext(), '/client/res/textures/selection.png', (texture) => {
             this.selection_texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/white.png', (texture) => {
+            this.white_texture = texture;
         });
 
         this.bg_sound = new Audio();
