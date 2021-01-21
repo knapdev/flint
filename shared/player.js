@@ -18,7 +18,8 @@ class Player{
         this.look_delta = new Vector3();
         this.is_looking = false;
         this.move_input = new Vector3();
-        this.selectedCoord = new Coord();
+        this.selectedCoordInside = new Coord();
+        this.selectedCoordOutside = new Coord();
         this.aabb = null;
         this.isGrounded = false;
         this.velocity = new Vector3();
@@ -73,13 +74,17 @@ class Player{
         let az = -Math.cos(this.rotation.y);
         let v = new Vector3(ax, ay, az).normalize();
         let cellCoord = new Vector3(this.getEyePos().x + v.x * 128, this.getEyePos().y + v.y * 128, this.getEyePos().z + v.z * 128);
+        let cellCoordOut = new Vector3(this.getEyePos().x + v.x * 128, this.getEyePos().y + v.y * 128, this.getEyePos().z + v.z * 128);
         let raycastResult = this.world.raytrace(this.getEyePos(), cellCoord);
         if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
             cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
+            cellCoordOut = new Coord(raycastResult.enterPoint.x + raycastResult.normal.x * 0.01, raycastResult.enterPoint.y + raycastResult.normal.y * 0.01, raycastResult.enterPoint.z + raycastResult.normal.z * 0.01);
         }else{
             cellCoord = null;
+            cellCoordOut = null;
         }
-        this.selectedCoord = cellCoord;
+        this.selectedCoordInside = cellCoord;
+        this.selectedCoordOutside = cellCoordOut;
     }
 
     jump(){

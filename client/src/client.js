@@ -122,14 +122,15 @@ class Client{
                 this.socket.emit('key-input', key_input);
             }
 
+            if(Mouse.getButtonDown(Mouse.Button.MIDDLE)){
+                this.socket.emit('terrain-remove', {});
+            }
+
             if(Mouse.getButtonDown(Mouse.Button.RIGHT)){
-                this.socket.emit('edit-terrain', {
-                    type: null
-                });
+                this.socket.emit('terrain-add', {});
             }
 
             if(Keyboard.getKeyDown(Keyboard.KeyCode.Z)){
-                console.log(this.player.selectedCoord);
                 this.renderWorld = !this.renderWorld;
             }
         }
@@ -148,11 +149,11 @@ class Client{
             this.worldRenderer.render();
         }
         
-        if(player.selectedCoord !== null){
+        if(player.selectedCoordInside !== null){
             this.renderer.setTexture(this.selection_texture);
             {
                 let matrix = Matrix4.create();
-                matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
+                matrix = Matrix4.translate(matrix, player.selectedCoordInside.x + 0.5, player.selectedCoordInside.y + 0.5, player.selectedCoordInside.z + 0.5);
                 matrix = Matrix4.scale(matrix, 1.01, 1.01, 1.01);
                 this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
                 this.renderer.drawMesh(this.mesh);
@@ -347,13 +348,13 @@ class Client{
                         if(other){
                             other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
                             other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
-                            if(other_pack.selectedCoord == null){
-                                other.selectedCoord = null;
+                            if(other_pack.selectedCoordInside == null){
+                                other.selectedCoordInside = null;
                             }else{
-                                other.selectedCoord = new Coord(
-                                    other_pack.selectedCoord.x,
-                                    other_pack.selectedCoord.y,
-                                    other_pack.selectedCoord.z
+                                other.selectedCoordInside = new Coord(
+                                    other_pack.selectedCoordInside.x,
+                                    other_pack.selectedCoordInside.y,
+                                    other_pack.selectedCoordInside.z
                                 );
                             }
                             

@@ -105,22 +105,39 @@ class Server{
                             player.move_input.set(move_input.x, move_input.y, move_input.z);
                         });
 
-                        socket.on('edit-terrain', (pack) => {
-                            if(player.selectedCoord !== null){
-                                let cell = this.world.getCell(player.selectedCoord);
+                        socket.on('terrain-remove', (pack) => {
+                            if(player.selectedCoordInside !== null){
+                                let cell = this.world.getCell(player.selectedCoordInside);
                                 if(cell){
-                                    cell.setTerrain(pack.type);
+                                    cell.setTerrain(null);
                                     this.io.emit('terrain-changed', {
                                         coord: {
-                                            x: player.selectedCoord.x,
-                                            y: player.selectedCoord.y,
-                                            z: player.selectedCoord.z
+                                            x: player.selectedCoordInside.x,
+                                            y: player.selectedCoordInside.y,
+                                            z: player.selectedCoordInside.z
                                         },
-                                        type: pack.type
+                                        type: null
                                     });
                                 }
                             }
                         });
+
+                        socket.on('terrain-add', (pack) => {
+                            if(player.selectedCoordOutside !== null){
+                                let cell = this.world.getCell(player.selectedCoordOutside);
+                                if(cell){
+                                    cell.setTerrain(1);
+                                    this.io.emit('terrain-changed', {
+                                        coord: {
+                                            x: player.selectedCoordOutside.x,
+                                            y: player.selectedCoordOutside.y,
+                                            z: player.selectedCoordOutside.z
+                                        },
+                                        type: 1
+                                    });
+                                }
+                            }
+                        })
 
                         let chunkDataList = [];
                         for(let c in this.world.chunks){
@@ -229,11 +246,11 @@ class Server{
                 }
 
                 let selected = null;
-                if(player.selectedCoord != null){
+                if(player.selectedCoordInside != null){
                     selected = {
-                        x: player.selectedCoord.x,
-                        y: player.selectedCoord.y,
-                        z: player.selectedCoord.z
+                        x: player.selectedCoordInside.x,
+                        y: player.selectedCoordInside.y,
+                        z: player.selectedCoordInside.z
                     };
                 }
 
@@ -249,7 +266,7 @@ class Server{
                         y: player.rotation.y,
                         z: player.rotation.z
                     },
-                    selectedCoord: selected
+                    selectedCoordInside: selected
                 });
 
                 this.io.emit('update-players', pack);
