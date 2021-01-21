@@ -34,8 +34,8 @@ class World{
         }
     }
 
-    removePlayer(player){
-        delete this.players[player.uuid];
+    removePlayer(uuid){
+        delete this.players[uuid];
     }
 
     getPlayer(uuid){

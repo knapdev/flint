@@ -4,6 +4,7 @@ import Vector3 from "./math/vector3.js";
 import Coord from "./world/coord.js";
 
 import Utils from './math/utils.js';
+import AABB from './physics/aabb.js';
 
 class Player{
 
@@ -18,6 +19,8 @@ class Player{
         this.is_looking = false;
         this.move_input = new Vector3();
         this.selectedCoord = new Coord();
+        this.aabb = null;
+        this.isGrounded = false;
     }
 
     tick(delta){
@@ -39,7 +42,7 @@ class Player{
             vel.z = this.move_input.z * 3 * delta;
         }
 
-        this.position = pos.add(vel);
+        this.position = this.resolveCollisions(pos, vel);
         this.move_input.set(0, 0, 0);
 
         //calculate players selected cell
@@ -53,6 +56,95 @@ class Player{
             cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
         }
         this.selectedCoord = cellCoord;
+    }
+
+    resolveCollisions(position, velocity){
+        this.aabb = new AABB(   new Vector3((position.x + velocity.x) - 0.25, (position.y + velocity.y), (position.z + velocity.z) - 0.25),
+                                new Vector3((position.x + velocity.x) + 0.25, (position.y + velocity.y) + 0.75, (position.z + velocity.z) + 0.25));
+        
+        let coord = new Coord(Math.floor(this.position.x), Math.floor(this.position.y), Math.floor(this.position.z));
+
+        // check vertical (down) collision
+        this.isGrounded = false;
+        let cellBelow = this.world.getCell(new Coord(coord.x, coord.y - 1, coord.z));
+        if((cellBelow && cellBelow.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x, coord.y - 1, coord.z), new Vector3(coord.x + 1, coord.y, coord.z + 1))
+
+			if(this.aabb.intersectsAABB(cellAABB)){
+				//console.log('down');
+				this.isGrounded = true;
+				position.y = cellAABB.cornerB.y;
+				velocity.y = 0;
+				//console.log(position.y);
+			}
+        }
+
+        //up
+        let cellAbove = this.world.getCell(new Coord(coord.x, coord.y + 1, coord.z));
+        if((cellAbove && cellAbove.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x, coord.y + 1, coord.z), new Vector3(coord.x + 1, coord.y + 2, coord.z + 1));
+
+            if(this.aabb.intersectsAABB(cellAABB)){
+                //console.log('up');
+                position.y = cellAABB.cornerA.y - 0.75;
+                velocity.y = 0;
+                //console.log(position.y);
+            }
+        }
+        
+        //north
+        let cellNorth = this.world.getCell(new Coord(coord.x, coord.y, coord.z - 1));
+        if((cellNorth && cellNorth.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x, coord.y, coord.z - 1), new Vector3(coord.x + 1, coord.y + 1, coord.z));
+
+			if(this.aabb.intersectsAABB(cellAABB)){
+				//console.log('north');
+				position.z = cellAABB.cornerB.z + 0.25;
+				velocity.z = 0;
+				//console.log(position.z);
+			}
+        }
+
+        //south
+        let cellSouth = this.world.getCell(new Coord(coord.x, coord.y, coord.z + 1));
+        if((cellSouth && cellSouth.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x, coord.y, coord.z + 1), new Vector3(coord.x + 1, coord.y + 1, coord.z + 2));
+
+            if(this.aabb.intersectsAABB(cellAABB)){
+                //console.log('south');
+                position.z = cellAABB.cornerA.z - 0.25;
+                velocity.z = 0;
+                //console.log(position.z);
+            }
+        }
+
+        //east
+        let cellEast = this.world.getCell(new Coord(coord.x + 1, coord.y, coord.z));
+        if((cellEast && cellEast.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x + 1, coord.y, coord.z), new Vector3(coord.x + 2, coord.y + 1, coord.z + 1));
+
+			if(this.aabb.intersectsAABB(cellAABB)){
+				//console.log('east');
+				position.x = cellAABB.cornerA.x - 0.25;
+				velocity.x = 0;
+				//console.log(position.x);
+			}
+        }
+
+        //west
+        let cellWest = this.world.getCell(new Coord(coord.x - 1, coord.y, coord.z));
+        if((cellWest && cellWest.getTerrain() != null)){
+            let cellAABB = new AABB(new Vector3(coord.x -1, coord.y, coord.z), new Vector3(coord.x, coord.y + 1, coord.z + 1));
+
+			if(this.aabb.intersectsAABB(cellAABB)){
+				//console.log('west');
+				position.x = cellAABB.cornerB.x + 0.25;
+				velocity.x = 0;
+				//console.log(position.x);
+			}
+        }
+        
+        return position.add(velocity);
     }
 
     getEyePos(){
