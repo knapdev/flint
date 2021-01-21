@@ -85,8 +85,7 @@ class Client{
                 down: false,
                 left: false,
                 right: false,
-                space: false,
-                shift: false
+                space: false
             };
             if(Keyboard.getKey(Keyboard.KeyCode.W)){
                 key_input['up'] = true;
@@ -100,14 +99,11 @@ class Client{
             if(Keyboard.getKey(Keyboard.KeyCode.D)){
                 key_input['right'] = true;
             }
-            if(Keyboard.getKey(Keyboard.KeyCode.SPACE)){
+            if(Keyboard.getKeyDown(Keyboard.KeyCode.SPACE)){
                 key_input['space'] = true;
             }
-            if(Keyboard.getKey(Keyboard.KeyCode.SHIFT)){
-                key_input['shift'] = true;
-            }
             
-            if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true || key_input['space'] == true || key_input['shift'] == true){
+            if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true || key_input['space'] == true){
                 this.socket.emit('key-input', key_input);
             }
 

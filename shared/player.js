@@ -21,6 +21,7 @@ class Player{
         this.selectedCoord = new Coord();
         this.aabb = null;
         this.isGrounded = false;
+        this.velocity = new Vector3();
     }
 
     tick(delta){
@@ -32,14 +33,20 @@ class Player{
             this.look_delta.y = 0;
         }
 
-        let vel = new Vector3();
+        let vel = this.velocity;
         let pos = this.position;
+
+        if(this.isGrounded == false){
+            vel.y -= 1 * delta;
+        }
 
         if(this.move_input.magnitude() > 0){
             this.move_input = this.move_input.normalize();
             vel.x = this.move_input.x * 3 * delta;
-            vel.y = this.move_input.y * 3 * delta;
             vel.z = this.move_input.z * 3 * delta;
+        }else{
+            vel.x = 0;
+            vel.z = 0;
         }
 
         this.position = this.resolveCollisions(pos, vel);
@@ -58,6 +65,12 @@ class Player{
         this.selectedCoord = cellCoord;
     }
 
+    jump(){
+        if(this.isGrounded){
+            this.velocity.y = 0.3;
+        }
+    }
+
     resolveCollisions(position, velocity){
         this.aabb = new AABB(   new Vector3((position.x + velocity.x) - 0.25, (position.y + velocity.y), (position.z + velocity.z) - 0.25),
                                 new Vector3((position.x + velocity.x) + 0.25, (position.y + velocity.y) + 0.75, (position.z + velocity.z) + 0.25));
@@ -72,9 +85,11 @@ class Player{
 
 			if(this.aabb.intersectsAABB(cellAABB)){
 				//console.log('down');
-				this.isGrounded = true;
+                this.isGrounded = true;
+                this.velocity.y = 0;
 				position.y = cellAABB.cornerB.y;
-				velocity.y = 0;
+                velocity.y = 0;
+                
 				//console.log(position.y);
 			}
         }

@@ -69,7 +69,7 @@ class Server{
                 this.login(pack.username, pack.password, (success) => {
                     if(success == true){
 
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3((Math.random() * 16), 10, (Math.random() * 10)), new Vector3());
+                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3((Math.random() * 16), 16, (Math.random() * 10)), new Vector3());
                         console.log('Player [' + player.username + '] connected!');
 
                         this.world.addPlayer(player);
@@ -100,10 +100,7 @@ class Server{
                                 move_input.z -= Math.sin(player.rotation.y);
                             }
                             if(pack['space'] == true){
-                                move_input.y += 1.0;
-                            }
-                            if(pack['shift'] == true){
-                                move_input.y -= 1.0;
+                                player.jump();
                             }
                             player.move_input.set(move_input.x, move_input.y, move_input.z);
                         });
@@ -221,6 +218,13 @@ class Server{
             for(let u in this.world.players){
                 let player = this.world.players[u];
                 player.tick(delta);
+
+                if(player.position.y < 0){
+                    player.position.y = 16;
+                    player.position.x = 8;
+                    player.position.z = 8;
+                    player.velocity.y = 0;
+                }
 
                 pack.push({
                     uuid: player.uuid,
