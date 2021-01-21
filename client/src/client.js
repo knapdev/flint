@@ -30,6 +30,8 @@ class Client{
     guy_texture = null;
     grass_texture = null;
     crate_texture = null;
+    selection_texture = null;
+
     bg_sound = null;
     boop_sound = null;
     
@@ -135,6 +137,7 @@ class Client{
             this.worldRenderer.render();
         }
         
+        this.renderer.setTexture(this.selection_texture);
         {
             let matrix = Matrix4.create();
             matrix = Matrix4.translate(matrix, player.selectedCoord.x + 0.5, player.selectedCoord.y + 0.5, player.selectedCoord.z + 0.5);
@@ -198,6 +201,9 @@ class Client{
         });
         Texture.load(this.renderer.getContext(), '/client/res/textures/crate.png', (texture) => {
             this.crate_texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/selection.png', (texture) => {
+            this.selection_texture = texture;
         });
 
         this.bg_sound = new Audio();
