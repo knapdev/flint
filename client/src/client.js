@@ -178,6 +178,13 @@ class Client{
                 }
             }
         }
+
+        // UI
+        document.getElementById('coords').innerText =
+            'x:' + Math.floor(player.position.x) +
+            ' y:' + Math.floor(player.position.y) +
+            ' z:' + Math.floor(player.position.z);
+        
     }
 
     initRenderer(){
