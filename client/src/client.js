@@ -37,6 +37,7 @@ class Client{
     crate_texture = null;
     selection_texture = null;
     white_texture = null;
+    tiles_texture = null;
 
     bg_sound = null;
     boop_sound = null;
@@ -147,7 +148,7 @@ class Client{
         let player = this.world.getPlayer(this.uuid);
         this.renderer.setCamera(new Vector3(player.position.x, player.position.y + 0.5, player.position.z), player.rotation);
 
-        this.renderer.setTexture(this.texture);
+        this.renderer.setTexture(this.tiles_texture);
         if(this.renderWorld){
             this.worldRenderer.render();
         }
@@ -254,6 +255,9 @@ class Client{
         });
         Texture.load(this.renderer.getContext(), '/client/res/textures/white.png', (texture) => {
             this.white_texture = texture;
+        });
+        Texture.load(this.renderer.getContext(), '/client/res/textures/tiles.png', (texture) => {
+            this.tiles_texture = texture;
         });
 
         this.bg_sound = new Audio();
