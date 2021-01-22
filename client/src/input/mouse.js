@@ -2,6 +2,10 @@
 
 class Mouse {
 	constructor(){
+		window.addEventListener('contextmenu', (evnt) => {
+            evnt.preventDefault();
+            return false;
+        });
 
 		this.Button = {
             LEFT: 0,
@@ -37,6 +41,7 @@ class Mouse {
 		};
 
 		this._onMouseDown = function(evnt){
+			evnt.preventDefault();
 			this.buttonsHeld[evnt.button] = true;
 		};
 

@@ -60,11 +60,6 @@ class Client{
     }
 
     start(){
-        window.addEventListener('contextmenu', (evnt) => {
-            evnt.preventDefault();
-            return false;
-        });
-
         console.log('Client started.');
         this.socket = io();
 
