@@ -196,7 +196,7 @@ class Client{
         }
 
         // UI (SLOW!!! Should only update when the player actually changes coords!)
-        document.getElementById('coords').innerText =
+        document.getElementById('coords').innerText = 'C - ' +
             'x:' + Math.floor(player.position.x) +
             ' y:' + Math.floor(player.position.y) +
             ' z:' + Math.floor(player.position.z);
@@ -407,6 +407,15 @@ class Client{
                     let chunk = this.world.getChunk(coord);
                     chunk.getCell(coord).unpack(pack);
                     this.worldRenderer.onChunkCreated(chunk);
+
+                    let actionName = 'mined'
+                    if(pack.type !== null){
+                        actionName = 'placed'
+                    }                    
+                    this.addEntryToLog({
+                        time: pack.time,
+                        text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
+                    });
                 });
 
                 this.socket.on('log-player-message', (pack) => {

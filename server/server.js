@@ -111,6 +111,8 @@ class Server{
                                 if(cell){
                                     cell.setTerrain(null);
                                     this.io.emit('terrain-changed', {
+                                        time: new Date().toLocaleTimeString().toLowerCase(),
+                                        playerUUID: player.uuid,
                                         coord: {
                                             x: player.selectedCoordInside.x,
                                             y: player.selectedCoordInside.y,
@@ -128,6 +130,8 @@ class Server{
                                 if(cell){
                                     cell.setTerrain(1);
                                     this.io.emit('terrain-changed', {
+                                        time: new Date().toLocaleTimeString().toLowerCase(),
+                                        playerUUID: player.uuid,
                                         coord: {
                                             x: player.selectedCoordOutside.x,
                                             y: player.selectedCoordOutside.y,
@@ -192,7 +196,6 @@ class Server{
                         });
 
                         socket.on('chat-msg', (pack) => {
-                            console.log('msg');
                             this.parseMessage(socket, player, pack.data);
                         });
             
@@ -306,12 +309,11 @@ class Server{
             switch(chunks[0]){
                 case 'roll':
                     let num = Number(chunks[1]);
-                    if(num == NaN){
-                        console.log('not a number');
-                        break;
+                    if(isNaN(num)){
+                        num = 100;
                     }
                     let r = Math.floor(Math.random() * num) + '/' + num;
-                    let text = player.username + ' rolls ' + r;
+                    let text = '<span class="eventlog-username">' + player.username + '</span> rolls ' + r;
                     this.io.emit('log-event', {
                         time: new Date().toLocaleTimeString().toLowerCase(),
                         text: text
