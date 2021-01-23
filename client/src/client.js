@@ -31,6 +31,7 @@ class Client{
 
     mesh = null;
     head_mesh = null;
+
     texture = null;
     guy_texture = null;
     grass_texture = null;
@@ -59,8 +60,7 @@ class Client{
     constructor(config){
     }
 
-    start(){
-        console.log('Client started.');
+    connect(){
         this.socket = io();
 
         let login_button = document.getElementById('login-button');
@@ -72,6 +72,121 @@ class Client{
         register_button.addEventListener('click', (evnt) => {
             this.register();
         });
+    }
+
+    start(pack){
+        console.log('Client started.');
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('game-screen').style.display = 'block';
+        this.initRenderer();
+        this.loadAssets();
+        this.initWorld(pack.world_name, pack.chunk_data);
+
+        this.player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        this.uuid = pack.uuid;
+
+        this.world.addPlayer(this.player);
+
+        for(let u in pack.player_list){
+            let pack_data = pack.player_list[u];
+            let other = new Player(pack_data.uuid, this.world, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+            this.world.addPlayer(other);
+        }
+
+        document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
+
+        this.addEntryToLog({
+            time: pack.time,
+            text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.username + '</span>!'
+        });
+        this.addEntryToLog({
+            time: pack.time,
+            text: pack.motd
+        });
+        this.logUserList(pack);
+
+        this.socket.on('player-connected', (pack) => {
+            this.onPlayerConnected(pack);
+        });
+
+        this.socket.on('player-disconnected', (pack) => {
+            this.onPlayerDisconnected(pack);
+        });
+
+        this.socket.on('update-players', (pack) => {
+            for(let i in pack){
+                let other_pack = pack[i];
+                let other = this.world.getPlayer(other_pack.uuid);
+                if(other){
+                    other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
+                    other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
+                    if(other_pack.selectedCoordInside == null){
+                        other.selectedCoordInside = null;
+                    }else{
+                        other.selectedCoordInside = new Coord(
+                            other_pack.selectedCoordInside.x,
+                            other_pack.selectedCoordInside.y,
+                            other_pack.selectedCoordInside.z
+                        );
+                    }
+
+                    if(other_pack.selectedCoordOutside == null){
+                        other.selectedCoordOutside = null;
+                    }else{
+                        other.selectedCoordOutside = new Coord(
+                            other_pack.selectedCoordOutside.x,
+                            other_pack.selectedCoordOutside.y,
+                            other_pack.selectedCoordOutside.z
+                        );
+                    }
+                }
+            }
+        });
+
+        this.socket.on('terrain-changed', (pack) => {
+            let coord = new Coord(pack.coord.x, pack.coord.y, pack.coord.z);
+            let chunk = this.world.getChunk(coord);
+            chunk.getCell(coord).unpack(pack);
+            this.worldRenderer.onChunkCreated(chunk);
+
+            let actionName = 'mined'
+            if(pack.type !== null){
+                actionName = 'placed'
+            }                    
+            this.addEntryToLog({
+                time: pack.time,
+                text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
+            });
+        });
+
+        this.socket.on('log-player-message', (pack) => {
+            this.logUserMessage(pack);
+        });
+    
+        this.socket.on('log-event', (pack) => {
+            this.logEvent(pack);
+        });
+
+        this.socket.on('log-player-list', (pack) => {
+            this.logUserList(pack);
+        });
+        
+        let input = document.getElementById('eventlog-input');
+        input.addEventListener('keyup', (evnt) => {
+            if(evnt.keyCode == 13){
+                if(input.value.length != 0){
+                    this.socket.emit('chat-msg', {
+                        data: input.value.toString()
+                    });
+                }
+                input.value = '';
+            }
+        });
+
+        Mouse._init();
+
+        this.then = performance.now();
+        this.frame_id = requestAnimationFrame(this.run.bind(this));
     }
 
     run(now){
@@ -91,7 +206,6 @@ class Client{
 
     update(delta){
         Keyboard._update();
-        Mouse._update();
 
         if(document.body === document.activeElement){
             let key_input = {
@@ -121,6 +235,20 @@ class Client{
                 this.socket.emit('key-input', key_input);
             }
 
+            if(Mouse.getButtonDown(Mouse.Button.LEFT)){
+                this.renderer.canvas.requestPointerLock();
+                this.socket.emit('set-looking', {
+                    state: true
+                });
+            }
+
+            if(Mouse.getButtonUp(Mouse.Button.LEFT)){
+                document.exitPointerLock();
+                this.socket.emit('set-looking', {
+                    state: false
+                });
+            }
+
             if(Mouse.getButtonDown(Mouse.Button.MIDDLE)){
                 this.socket.emit('terrain-remove', {});
             }
@@ -129,10 +257,19 @@ class Client{
                 this.socket.emit('terrain-add', {});
             }
 
+            if(Mouse.getMovement()){
+                this.socket.emit('set-look-delta', {
+                    x: Mouse.delta.x,
+                    y: Mouse.delta.y
+                });
+            }
+
             if(Keyboard.getKeyDown(Keyboard.KeyCode.Z)){
                 this.renderWorld = !this.renderWorld;
             }
         }
+
+        Mouse._update();
     }
 
     render(){
@@ -220,19 +357,25 @@ class Client{
 
         this.shader = new Shader(this.renderer.getContext(), vertShaderSourceString, fragShaderSourceString);
         this.renderer.setShader(this.shader);
+        window.addEventListener('resize', (evnt) => {
+            this.renderer.resize();
+        });
+        this.renderer.resize();
 
         this.renderer.setPerspective(50.0, 0.01, 256.0);
         this.renderer.setClearColor(0.05, 0.05, 0.1, 1.0);
         //this.renderer.setClearColor(0.60, 0.80, 0.95);
         //this.renderer.setClearColor(0.99, 0.70, 0.70);
 
-        window.addEventListener('resize', (evnt) => {
-            this.renderer.resize();
-        });
-        this.renderer.resize();
+        this.stats = new Stats();
+        this.stats.showPanel(0);
+        document.body.appendChild(this.stats.dom);
+    }
 
+    loadAssets(){
         this.mesh = generateMesh(this.renderer.getContext());
-        this.head_mesh = generateHeadMesh(this.renderer.getContext())
+        this.head_mesh = generateHeadMesh(this.renderer.getContext());
+
         Texture.load(this.renderer.getContext(), '/client/res/textures/test.png', (texture) => {
             this.texture = texture;
         });
@@ -259,40 +402,10 @@ class Client{
 		this.bg_sound.src = 'client/res/sounds/bg.mp3';
 		this.bg_sound.volume = 0.25;
 		this.bg_sound.loop = true;
-        //this.bg_sound.play();
         
         this.boop_sound = new Audio();
 		this.boop_sound.src = 'client/res/sounds/boop.mp3';
         this.boop_sound.volume = 0.25;
-        
-        Mouse._init();
-
-        this.renderer.canvas.addEventListener('mousemove', (evnt) => {
-            this.socket.emit('set-look-delta', {
-                x: evnt.movementX,
-                y: evnt.movementY
-            });
-        });
-        this.renderer.canvas.addEventListener('mousedown', (evnt) => {
-            if(evnt.button == 0){
-                this.renderer.canvas.requestPointerLock();
-                this.socket.emit('set-looking', {
-                    state: true
-                });
-            }
-        });
-        this.renderer.canvas.addEventListener('mouseup', (evnt) => {
-            if(evnt.button == 0){
-                document.exitPointerLock();
-                this.socket.emit('set-looking', {
-                    state: false
-                });
-            }
-        });
-
-        this.stats = new Stats();
-        this.stats.showPanel(0);
-        document.body.appendChild(this.stats.dom);
     }
 
     initWorld(name, chunk_data){
@@ -324,125 +437,7 @@ class Client{
 
         this.socket.on('login-response', (pack) => {
             if(pack.success == true){
-                document.getElementById('login-container').style.display = 'none';
-                document.getElementById('game-screen').style.display = 'block';
-                this.initRenderer();
-                this.initWorld(pack.world_name, pack.chunk_data);
-
-                this.player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
-                this.uuid = pack.uuid;
-
-                this.world.addPlayer(this.player);
-
-                for(let u in pack.player_list){
-                    let pack_data = pack.player_list[u];
-                    let other = new Player(pack_data.uuid, this.world, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
-                    this.world.addPlayer(other);
-                }
-
-                document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
-
-                this.addEntryToLog({
-                    time: pack.time,
-                    text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.username + '</span>!'
-                });
-                this.addEntryToLog({
-                    time: pack.time,
-                    text: pack.motd
-                });
-                this.logUserList(pack);
-
-                this.socket.on('player-connected', (pack) => {
-                    let other = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
-                    this.world.addPlayer(other);
-                    this.addEntryToLog({
-                        time: pack.time,
-                        text: '<span class="eventlog-username">' + other.username + '</span> connected!'
-                    });
-                });
-
-                this.socket.on('player-disconnected', (pack) => {
-                    let other = this.world.getPlayer(pack.uuid);
-                    this.addEntryToLog({
-                        time: pack.time,
-                        text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
-                    });
-                    this.world.removePlayer(pack.uuid);
-                });
-
-                this.socket.on('update-players', (pack) => {
-                    for(let i in pack){
-                        let other_pack = pack[i];
-                        let other = this.world.getPlayer(other_pack.uuid);
-                        if(other){
-                            other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
-                            other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
-                            if(other_pack.selectedCoordInside == null){
-                                other.selectedCoordInside = null;
-                            }else{
-                                other.selectedCoordInside = new Coord(
-                                    other_pack.selectedCoordInside.x,
-                                    other_pack.selectedCoordInside.y,
-                                    other_pack.selectedCoordInside.z
-                                );
-                            }
-
-                            if(other_pack.selectedCoordOutside == null){
-                                other.selectedCoordOutside = null;
-                            }else{
-                                other.selectedCoordOutside = new Coord(
-                                    other_pack.selectedCoordOutside.x,
-                                    other_pack.selectedCoordOutside.y,
-                                    other_pack.selectedCoordOutside.z
-                                );
-                            }
-                            
-                        }
-                    }
-                });
-
-                this.socket.on('terrain-changed', (pack) => {
-                    let coord = new Coord(pack.coord.x, pack.coord.y, pack.coord.z);
-                    let chunk = this.world.getChunk(coord);
-                    chunk.getCell(coord).unpack(pack);
-                    this.worldRenderer.onChunkCreated(chunk);
-
-                    let actionName = 'mined'
-                    if(pack.type !== null){
-                        actionName = 'placed'
-                    }                    
-                    this.addEntryToLog({
-                        time: pack.time,
-                        text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
-                    });
-                });
-
-                this.socket.on('log-player-message', (pack) => {
-                    this.logUserMessage(pack);
-                });
-            
-                this.socket.on('log-event', (pack) => {
-                    this.logEvent(pack);
-                });
-        
-                this.socket.on('log-player-list', (pack) => {
-                    this.logUserList(pack);
-                });
-                
-                let input = document.getElementById('eventlog-input');
-                input.addEventListener('keyup', (evnt) => {
-                    if(evnt.keyCode == 13){
-                        if(input.value.length != 0){
-                            this.socket.emit('chat-msg', {
-                                data: input.value.toString()
-                            });
-                        }
-                        input.value = '';
-                    }
-                });                
-
-                this.then = performance.now();
-                this.frame_id = requestAnimationFrame(this.run.bind(this));
+                this.start(pack);
             }else{
                 document.getElementById('login-alert').innerText = 'Login unsuccessful. Try again.';
                 username.value = '';
@@ -527,6 +522,24 @@ class Client{
         contents.scrollTop = contents.scrollHeight;
 
         //this.boop_sound.play();
+    }
+
+    onPlayerConnected(pack){
+        let other = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        this.world.addPlayer(other);
+        this.addEntryToLog({
+            time: pack.time,
+            text: '<span class="eventlog-username">' + other.username + '</span> connected!'
+        });
+    }
+
+    onPlayerDisconnected(pack){
+        let other = this.world.getPlayer(pack.uuid);
+        this.addEntryToLog({
+            time: pack.time,
+            text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
+        });
+        this.world.removePlayer(pack.uuid);
     }
 }
 

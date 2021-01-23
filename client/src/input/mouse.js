@@ -18,12 +18,17 @@ class Mouse {
 		this.buttonsDown = [];
 		this.buttonsUp = [];
 		this.buttonsHeld = [];
-        this.buttonsLast = [];
-        
-        this.pos = {
+		this.buttonsLast = [];
+
+		this.pos = {
             x: 0,
             y: 0
         };
+
+		this.delta = {
+			x: 0,
+			y: 0
+		};
 
 		for(let i = 0; i < this.Button.COUNT; i++){
 			this.buttonsDown[i] = false;
@@ -38,6 +43,8 @@ class Mouse {
 				this.buttonsUp[i] = this.buttonsLast[i] && (!this.buttonsHeld[i]);
 				this.buttonsLast[i] = this.buttonsHeld[i];
 			}
+			this.delta.x = 0;
+			this.delta.y = 0;
 		};
 
 		this._onMouseDown = function(evnt){
@@ -51,7 +58,9 @@ class Mouse {
 
         this._onMouseMove = function(evnt){
             this.pos.x = evnt.clientX;
-            this.pos.y = evnt.clientY;
+			this.pos.y = evnt.clientY;
+			this.delta.x = evnt.movementX;
+			this.delta.y = evnt.movementY;
         };
         
         this._init = function(){
@@ -72,7 +81,11 @@ class Mouse {
 
 	getButtonUp(buttonId){
 		return this.buttonsUp[buttonId];
-    }
+	}
+	
+	getMovement(){
+		return this.delta.x !== 0 || this.delta.y !== 0;
+	}
     
     getPos(){
         return this.pos;

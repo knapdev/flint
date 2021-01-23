@@ -9,5 +9,5 @@ window.addEventListener('load', (evnt) => {
 function main(){
     let config = {};
     let client = new Client(config);
-    client.start();
+    client.connect();
 }
