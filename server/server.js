@@ -31,6 +31,20 @@ class Server{
     }
 
     init(){
+
+        this.noise = new Noise();
+        this.noise.seed('drod');
+
+        this.world = new World('The Ancient Dawn');
+        for(let y = 0; y < 64; y += 8){
+            for(let x = 0; x < 32; x += 8){
+                for(let z = 0; z < 32; z += 8){
+                    let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
+                    this.world.addChunk(chunk);
+                }
+            }
+        }
+
         // Start express server
         let app = express();
         let __dirname = path.resolve();
@@ -49,179 +63,15 @@ class Server{
             console.log('Server running...');
         });
 
-        this.noise = new Noise();
-        this.noise.seed('dord');
-
-        this.world = new World('The Ancient Dawn');
-        for(let y = 0; y < 64; y += 8){
-            for(let x = 0; x < 32; x += 8){
-                for(let z = 0; z < 32; z += 8){
-                    let chunk =  this.generateChunk(this.world, new Coord(x, y, z));
-                    this.world.addChunk(chunk);
-                }
-            }
-        }
-
         // Start socketio server
         this.io = new IO(server);
         this.io.on('connection', (socket) => {
             socket.on('login', (pack) => {
-                this.login(pack.username, pack.password, (success) => {
-                    if(success == true){
-
-                        let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 36, 16.5), new Vector3());
-                        console.log('Player [' + player.username + '] connected!');
-
-                        this.world.addPlayer(player);
-
-                        socket.on('set-looking', (pack) => {
-                            player.is_looking = pack.state;
-                        });
-                        socket.on('set-look-delta', (pack) => {
-                            player.look_delta.x = pack.x;
-                            player.look_delta.y = pack.y;
-                        });
-                        socket.on('key-input', (pack) => {
-                            let move_input = new Vector3();
-                            if(pack['up'] == true){
-                                move_input.x -= Math.sin(player.rotation.y);
-                                move_input.z -= Math.cos(player.rotation.y);
-                            }
-                            if(pack['down'] == true){
-                                move_input.x += Math.sin(player.rotation.y);
-                                move_input.z += Math.cos(player.rotation.y);
-                            }
-                            if(pack['left'] == true){
-                                move_input.x -= Math.cos(player.rotation.y);
-                                move_input.z += Math.sin(player.rotation.y);
-                            }
-                            if(pack['right'] == true){
-                                move_input.x += Math.cos(player.rotation.y);
-                                move_input.z -= Math.sin(player.rotation.y);
-                            }
-                            if(pack['space'] == true){
-                                player.jump();
-                            }
-                            player.move_input.set(move_input.x, move_input.y, move_input.z);
-                        });
-
-                        socket.on('terrain-remove', (pack) => {
-                            if(player.selectedCoordInside !== null){
-                                let cell = this.world.getCell(player.selectedCoordInside);
-                                if(cell){
-                                    cell.setTerrain(null);
-                                    this.io.emit('terrain-changed', {
-                                        time: new Date().toLocaleTimeString().toLowerCase(),
-                                        playerUUID: player.uuid,
-                                        coord: {
-                                            x: player.selectedCoordInside.x,
-                                            y: player.selectedCoordInside.y,
-                                            z: player.selectedCoordInside.z
-                                        },
-                                        type: null
-                                    });
-                                }
-                            }
-                        });
-
-                        socket.on('terrain-add', (pack) => {
-                            if(player.selectedCoordOutside !== null){
-                                let cell = this.world.getCell(player.selectedCoordOutside);
-                                if(cell){
-                                    cell.setTerrain(1);
-                                    this.io.emit('terrain-changed', {
-                                        time: new Date().toLocaleTimeString().toLowerCase(),
-                                        playerUUID: player.uuid,
-                                        coord: {
-                                            x: player.selectedCoordOutside.x,
-                                            y: player.selectedCoordOutside.y,
-                                            z: player.selectedCoordOutside.z
-                                        },
-                                        type: 1
-                                    });
-                                }
-                            }
-                        })
-
-                        let chunkDataList = [];
-                        for(let c in this.world.chunks){
-                            let chunk = this.world.chunks[c];
-                            chunkDataList.push(chunk.pack());
-                        }
-
-                        let playersInWorld = {};
-                        for(let p in this.world.players){
-                            let pp = this.world.players[p];
-
-                            playersInWorld[pp.uuid] = pp.pack();
-                        }
-            
-                        socket.emit('login-response', {
-                            success: true,
-                            uuid: player.uuid,
-                            time: new Date().toLocaleTimeString().toLowerCase(),
-                            username: player.username,
-                            room: player.room,
-                            motd: this.motd,
-                            position: {
-                                x: player.position.x,
-                                y: player.position.y,
-                                z: player.position.z
-                            },
-                            rotation: {
-                                x: player.rotation.x,
-                                y: player.rotation.y,
-                                z: player.rotation.z
-                            },
-                            player_list: playersInWorld,
-                            world_name: this.world.name,
-                            chunk_data: chunkDataList
-                        });
-
-                        socket.broadcast.emit('player-connected', {
-                            uuid: player.uuid,
-                            time: new Date().toLocaleTimeString().toLowerCase(),
-                            username: player.username,
-                            room: player.room,
-                            position: {
-                                x: player.position.x,
-                                y: player.position.y,
-                                z: player.position.z
-                            },
-                            rotation: {
-                                x: player.rotation.x,
-                                y: player.rotation.y,
-                                z: player.rotation.z
-                            }
-                        });
-
-                        socket.on('chat-msg', (pack) => {
-                            this.parseMessage(socket, player, pack.data);
-                        });
-            
-                        socket.on('disconnect', () => {
-                            this.io.emit('player-disconnected', {
-                                uuid: player.uuid,
-                                time: new Date().toLocaleTimeString().toLowerCase()
-                            });
-            
-                            console.log('Player [' + player.username + '] disconnected.');
-                            this.world.removePlayer(player.uuid);
-                        });
-                    }else{
-                        socket.emit('login-response', {
-                            success: false
-                        });
-                    }
-                });
+                this.onLogin(socket, pack);
             });
         
             socket.on('register', (pack) => {
-                this.register(pack.username, pack.password, (success) => {
-                    socket.emit('register-response', {
-                        success: res
-                    });
-                });
+                this.onRegister(socket, pack);
             });
         });
     }
@@ -289,15 +139,117 @@ class Server{
         }, TICK_RATE);
     }
 
-    login(username, password, callback){
-        Database.authenticate(username, password, (res) => {
-            callback(res);
+    onLogin(socket, pack){
+        Database.authenticate(pack.username, pack.password, (success) => {
+            console.log(success);
+            if(success == true){
+
+                let player = new Player(UUID(), this.world, pack.username, 'global', new Vector3(16.5, 36, 16.5), new Vector3());
+                console.log('Player [' + player.username + '] connected!');
+
+                this.world.addPlayer(player);
+
+                socket.on('set-looking', (pack) => {
+                    player.is_looking = pack.state;
+                });
+                socket.on('set-look-delta', (pack) => {
+                    player.look_delta.x = pack.x;
+                    player.look_delta.y = pack.y;
+                });
+                socket.on('key-input', (pack) => {
+                    this.onKeyInput(player, pack);
+                });
+
+                socket.on('terrain-remove', (pack) => {
+                    if(player.selectedCoordInside !== null){
+                        this.onTerrainRemoved(player, player.selectedCoordInside);
+                    }
+                });
+
+                socket.on('terrain-add', (pack) => {
+                    if(player.selectedCoordOutside !== null){
+                        this.onTerrainAdded(player, player.selectedCoordOutside);
+                    }
+                });
+
+                socket.on('chat-msg', (pack) => {
+                    this.parseMessage(socket, player, pack.data);
+                });
+    
+                socket.on('disconnect', () => {
+                    this.io.emit('player-disconnected', {
+                        uuid: player.uuid,
+                        time: new Date().toLocaleTimeString().toLowerCase()
+                    });
+    
+                    console.log('Player [' + player.username + '] disconnected.');
+                    this.world.removePlayer(player.uuid);
+                });
+
+                let chunkDataList = [];
+                for(let c in this.world.chunks){
+                    let chunk = this.world.chunks[c];
+                    chunkDataList.push(chunk.pack());
+                }
+
+                let playersInWorld = {};
+                for(let p in this.world.players){
+                    let pp = this.world.players[p];
+
+                    playersInWorld[pp.uuid] = pp.pack();
+                }
+    
+                socket.emit('login-response', {
+                    success: true,
+                    uuid: player.uuid,
+                    time: new Date().toLocaleTimeString().toLowerCase(),
+                    username: player.username,
+                    room: player.room,
+                    motd: this.motd,
+                    position: {
+                        x: player.position.x,
+                        y: player.position.y,
+                        z: player.position.z
+                    },
+                    rotation: {
+                        x: player.rotation.x,
+                        y: player.rotation.y,
+                        z: player.rotation.z
+                    },
+                    player_list: playersInWorld,
+                    world_name: this.world.name,
+                    chunk_data: chunkDataList
+                });
+
+                socket.broadcast.emit('player-connected', {
+                    uuid: player.uuid,
+                    time: new Date().toLocaleTimeString().toLowerCase(),
+                    username: player.username,
+                    room: player.room,
+                    position: {
+                        x: player.position.x,
+                        y: player.position.y,
+                        z: player.position.z
+                    },
+                    rotation: {
+                        x: player.rotation.x,
+                        y: player.rotation.y,
+                        z: player.rotation.z
+                    }
+                });                
+            }else{
+                socket.emit('login-response', {
+                    success: false
+                });
+            }
         });
     }
 
-    register(username, password, callback){
-        Database.registerAccount(username, password, (res) => {
-            callback(res);
+    onRegister(socket, pack){
+        Database.registerAccount(pack.username, pack.password, (success) => {
+            socket.emit('register-response', {
+                success: success
+            });
         });
     }
 
@@ -356,6 +308,64 @@ class Server{
                 username: player.username,
                 text: message,
                 type: 'normal'
+            });
+        }
+    }
+
+    onKeyInput(player, pack){
+        let move_input = new Vector3();
+        if(pack['up'] == true){
+            move_input.x -= Math.sin(player.rotation.y);
+            move_input.z -= Math.cos(player.rotation.y);
+        }
+        if(pack['down'] == true){
+            move_input.x += Math.sin(player.rotation.y);
+            move_input.z += Math.cos(player.rotation.y);
+        }
+        if(pack['left'] == true){
+            move_input.x -= Math.cos(player.rotation.y);
+            move_input.z += Math.sin(player.rotation.y);
+        }
+        if(pack['right'] == true){
+            move_input.x += Math.cos(player.rotation.y);
+            move_input.z -= Math.sin(player.rotation.y);
+        }
+        if(pack['space'] == true){
+            player.jump();
+        }
+        player.move_input.set(move_input.x, move_input.y, move_input.z);
+    }
+
+    onTerrainAdded(player, coord){
+        let cell = this.world.getCell(coord);
+        if(cell){
+            cell.setTerrain(1);
+            this.io.emit('terrain-changed', {
+                time: new Date().toLocaleTimeString().toLowerCase(),
+                playerUUID: player.uuid,
+                coord: {
+                    x: coord.x,
+                    y: coord.y,
+                    z: coord.z
+                },
+                type: 1
+            });
+        }
+    }
+
+    onTerrainRemoved(player, coord){
+        let cell = this.world.getCell(coord);
+        if(cell){
+            cell.setTerrain(null);
+            this.io.emit('terrain-changed', {
+                time: new Date().toLocaleTimeString().toLowerCase(),
+                playerUUID: player.uuid,
+                coord: {
+                    x: coord.x,
+                    y: coord.y,
+                    z: coord.z
+                },
+                type: null
             });
         }
     }
