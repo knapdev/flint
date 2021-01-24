@@ -18,10 +18,6 @@ class Cell{
         return this.terrain;
     }
 
-    hasTerrain(){
-        return (this.terrain != null) ? true : false;
-    }
-
     getAABB(coord){
         if(this.terrain !== null){
             return new AABB(new Vector3(coord.x, coord.y, coord.z), new Vector3(coord.x + 1, coord.y + 1, coord.z + 1));

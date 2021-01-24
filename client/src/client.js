@@ -45,7 +45,6 @@ class Client{
     
     socket = null;
     uuid = null;
-    player = null;
 
     world = null;
     worldRenderer = null;
@@ -82,10 +81,10 @@ class Client{
         this.loadAssets();
         this.initWorld(pack.world_name, pack.chunk_data);
 
-        this.player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        let player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
         this.uuid = pack.uuid;
 
-        this.world.addPlayer(this.player);
+        this.world.addPlayer(player);
 
         for(let u in pack.player_list){
             let pack_data = pack.player_list[u];
@@ -93,11 +92,11 @@ class Client{
             this.world.addPlayer(other);
         }
 
-        document.getElementById('eventlog-header').innerText = this.capitalize(this.player.room);
+        document.getElementById('eventlog-header').innerText = this.capitalize(player.room);
 
         this.addEntryToLog({
             time: pack.time,
-            text: 'Welcome to ' + this.capitalize(this.player.room) + ', <span class="eventlog-username">' + this.player.username + '</span>!'
+            text: 'Welcome to ' + this.capitalize(player.room) + ', <span class="eventlog-username">' + player.username + '</span>!'
         });
         this.addEntryToLog({
             time: pack.time,
@@ -114,49 +113,11 @@ class Client{
         });
 
         this.socket.on('update-players', (pack) => {
-            for(let i in pack){
-                let other_pack = pack[i];
-                let other = this.world.getPlayer(other_pack.uuid);
-                if(other){
-                    other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
-                    other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
-                    if(other_pack.selectedCoordInside == null){
-                        other.selectedCoordInside = null;
-                    }else{
-                        other.selectedCoordInside = new Coord(
-                            other_pack.selectedCoordInside.x,
-                            other_pack.selectedCoordInside.y,
-                            other_pack.selectedCoordInside.z
-                        );
-                    }
-
-                    if(other_pack.selectedCoordOutside == null){
-                        other.selectedCoordOutside = null;
-                    }else{
-                        other.selectedCoordOutside = new Coord(
-                            other_pack.selectedCoordOutside.x,
-                            other_pack.selectedCoordOutside.y,
-                            other_pack.selectedCoordOutside.z
-                        );
-                    }
-                }
-            }
+            this.onUpdatePlayers(pack);
         });
 
         this.socket.on('terrain-changed', (pack) => {
-            let coord = new Coord(pack.coord.x, pack.coord.y, pack.coord.z);
-            let chunk = this.world.getChunk(coord);
-            chunk.getCell(coord).unpack(pack);
-            this.worldRenderer.onChunkCreated(chunk);
-
-            let actionName = 'mined'
-            if(pack.type !== null){
-                actionName = 'placed'
-            }                    
-            this.addEntryToLog({
-                time: pack.time,
-                text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
-            });
+            this.onTerrainChanged(pack);
         });
 
         this.socket.on('log-player-message', (pack) => {
@@ -435,7 +396,7 @@ class Client{
             password: password.value
         });
 
-        this.socket.on('login-response', (pack) => {
+        this.socket.once('login-response', (pack) => {
             if(pack.success == true){
                 this.start(pack);
             }else{
@@ -455,7 +416,7 @@ class Client{
             password: password.value
         });
 
-        this.socket.on('register-response', (pack) => {
+        this.socket.once('register-response', (pack) => {
             if(pack.success == true){
                 document.getElementById('login-alert').innerText = 'Registration successful. Please login.';
                 username.value = '';
@@ -540,6 +501,52 @@ class Client{
             text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
         });
         this.world.removePlayer(pack.uuid);
+    }
+
+    onUpdatePlayers(pack){
+        for(let i in pack){
+            let other_pack = pack[i];
+            let other = this.world.getPlayer(other_pack.uuid);
+            if(other){
+                other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
+                other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
+                if(other_pack.selectedCoordInside == null){
+                    other.selectedCoordInside = null;
+                }else{
+                    other.selectedCoordInside = new Coord(
+                        other_pack.selectedCoordInside.x,
+                        other_pack.selectedCoordInside.y,
+                        other_pack.selectedCoordInside.z
+                    );
+                }
+
+                if(other_pack.selectedCoordOutside == null){
+                    other.selectedCoordOutside = null;
+                }else{
+                    other.selectedCoordOutside = new Coord(
+                        other_pack.selectedCoordOutside.x,
+                        other_pack.selectedCoordOutside.y,
+                        other_pack.selectedCoordOutside.z
+                    );
+                }
+            }
+        }
+    }
+
+    onTerrainChanged(pack){
+        let coord = new Coord(pack.coord.x, pack.coord.y, pack.coord.z);
+        let chunk = this.world.getChunk(coord);
+        chunk.getCell(coord).unpack(pack);
+        this.worldRenderer.onChunkCreated(chunk);
+
+        let actionName = 'mined'
+        if(pack.type !== null){
+            actionName = 'placed'
+        }                    
+        this.addEntryToLog({
+            time: pack.time,
+            text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
+        });
     }
 }
 
