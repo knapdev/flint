@@ -26,6 +26,14 @@ class Player{
     }
 
     tick(delta){
+
+        this.look(delta);
+        this.move(delta);
+        
+        this.calculateSelectedCells();
+    }
+
+    look(delta){
         if(this.is_looking == true){
             this.rotation.y -= this.look_delta.x * 0.15 * delta;
             this.rotation.x -= this.look_delta.y * 0.15 * delta;
@@ -33,7 +41,9 @@ class Player{
             this.look_delta.x = 0;
             this.look_delta.y = 0;
         }
+    }
 
+    move(delta){
         let vel = this.velocity;
         let pos = this.position;
 
@@ -54,37 +64,7 @@ class Player{
         this.position = this.resolveCollisions(pos, vel);
         this.move_input.set(0, 0, 0);
 
-        //Temporary bounds checking
-        if(this.position.x <= 0){
-            this.position.x = 0;
-        }
-        if(this.position.x >= 31.99){
-            this.position.x = 31.99;
-        }
-        if(this.position.z <= 0){
-            this.position.z = 0;
-        }
-        if(this.position.z >= 31.99){
-            this.position.z = 31.99;
-        }
-
-        //calculate players selected cell
-        let ax = -Math.sin(this.rotation.y);
-        let ay = Math.tan(this.rotation.x);
-        let az = -Math.cos(this.rotation.y);
-        let v = new Vector3(ax, ay, az).normalize();
-        let cellCoord = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
-        let cellCoordOut = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
-        let raycastResult = this.world.raytrace(this.getEyePos(), cellCoord);
-        if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
-            cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
-            cellCoordOut = new Coord(raycastResult.enterPoint.x + raycastResult.normal.x * 0.01, raycastResult.enterPoint.y + raycastResult.normal.y * 0.01, raycastResult.enterPoint.z + raycastResult.normal.z * 0.01);
-        }else{
-            cellCoord = null;
-            cellCoordOut = null;
-        }
-        this.selectedCoordInside = cellCoord;
-        this.selectedCoordOutside = cellCoordOut;
+        this.checkBounds();
     }
 
     jump(){
@@ -187,6 +167,40 @@ class Player{
         }
         
         return position.add(velocity);
+    }
+
+    checkBounds(){
+        if(this.position.x <= 0){
+            this.position.x = 0;
+        }
+        if(this.position.x >= 31.99){
+            this.position.x = 31.99;
+        }
+        if(this.position.z <= 0){
+            this.position.z = 0;
+        }
+        if(this.position.z >= 31.99){
+            this.position.z = 31.99;
+        }
+    }
+
+    calculateSelectedCells(){
+        let ax = -Math.sin(this.rotation.y);
+        let ay = Math.tan(this.rotation.x);
+        let az = -Math.cos(this.rotation.y);
+        let v = new Vector3(ax, ay, az).normalize();
+        let cellCoord = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
+        let cellCoordOut = new Vector3(this.getEyePos().x + v.x * 2, this.getEyePos().y + v.y * 2, this.getEyePos().z + v.z * 2);
+        let raycastResult = this.world.raytrace(this.getEyePos(), cellCoord);
+        if(raycastResult != null && raycastResult.enterPoint != null && raycastResult.normal != null){
+            cellCoord = new Coord(raycastResult.enterPoint.x - raycastResult.normal.x * 0.01, raycastResult.enterPoint.y - raycastResult.normal.y * 0.01, raycastResult.enterPoint.z - raycastResult.normal.z * 0.01);
+            cellCoordOut = new Coord(raycastResult.enterPoint.x + raycastResult.normal.x * 0.01, raycastResult.enterPoint.y + raycastResult.normal.y * 0.01, raycastResult.enterPoint.z + raycastResult.normal.z * 0.01);
+        }else{
+            cellCoord = null;
+            cellCoordOut = null;
+        }
+        this.selectedCoordInside = cellCoord;
+        this.selectedCoordOutside = cellCoordOut;
     }
 
     getEyePos(){
