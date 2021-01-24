@@ -75,6 +75,10 @@ class Vector3 {
 		return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z)
 	}
 
+	distance(other){
+		return Math.sqrt(Math.pow((other.x - this.x), 2) + Math.pow((other.y - this.y), 2) + Math.pow((other.z - this.z), 2));
+	}
+
 	normalize(){
 		let mag = this.magnitude();
 		return this.div(new Vector3(mag, mag, mag));
