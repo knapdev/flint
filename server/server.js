@@ -196,14 +196,12 @@ class Server{
                 let socket = this.SOCKETS[socketUUID];
                 socket.emit('login-response', {
                     success: true,
-                    time: new Date().toLocaleTimeString().toLowerCase(),
                     motd: this.motd,
                     uuid: player.uuid,
                     world: this.world.pack()                    
                 });
 
                 socket.broadcast.emit('player-connected', {
-                    time: new Date().toLocaleTimeString().toLowerCase(),
                     player: player.pack()
                 });                
             }else{
@@ -239,13 +237,11 @@ class Server{
                     let r = Math.floor(Math.random() * num) + '/' + num;
                     let text = '<span class="eventlog-username">' + player.username + '</span> rolls ' + r;
                     this.io.emit('log-event', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         text: text
                     });
                     break;
                 case 'yell':
                     this.io.emit('log-player-message', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         username: player.username,
                         text: message.substring(5),
                         type: 'loud'
@@ -253,7 +249,6 @@ class Server{
                     break;
                 case 'who':
                     socket.emit('log-player-list', {
-                        time: new Date().toLocaleTimeString().toLowerCase()
                     });
                     break;
                 case 'help':
@@ -263,20 +258,17 @@ class Server{
                     msg += '/roll number : Generate a random number between 0 and number.</br>';
                     msg += '/help : This help message.</br>';
                     socket.emit('log-event', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         text: msg
                     });
                     break;
                 default:
                     socket.emit('log-event', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         text: 'Unknown command: ' + chunks[0]
                     });
                     break;
             }
         }else{
             this.io.emit('log-player-message', {
-                time: new Date().toLocaleTimeString().toLowerCase(),
                 username: player.username,
                 text: message,
                 type: 'normal'
@@ -319,7 +311,6 @@ class Server{
                 if(cell){
                     cell.setTerrain(1);
                     this.io.emit('terrain-changed', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         playerUUID: player.uuid,
                         coord: {
                             x: coord.x,
@@ -342,7 +333,6 @@ class Server{
                 if(cell){
                     cell.setTerrain(null);
                     this.io.emit('terrain-changed', {
-                        time: new Date().toLocaleTimeString().toLowerCase(),
                         playerUUID: player.uuid,
                         coord: {
                             x: coord.x,
@@ -374,7 +364,6 @@ class Server{
         if(player){
             this.io.emit('player-disconnected', {
                 uuid: player.uuid,
-                time: new Date().toLocaleTimeString().toLowerCase()
             });
 
             console.log('Player [' + player.username + '] disconnected.');

@@ -23,6 +23,7 @@ import Chunk from '../../shared/world/chunk.js';
 import Stats from './utils/stats.js';
 
 import AABB from '../../shared/physics/aabb.js';
+import EventLog from './ui/eventlog.js';
 
 
 class Client{
@@ -56,6 +57,7 @@ class Client{
     renderWorld = true;
 
     stats = null;
+    eventLog = null;
 
     constructor(config){
     }
@@ -86,16 +88,11 @@ class Client{
         this.uuid = pack.uuid;
         let player = this.world.getPlayer(this.uuid);
 
-        document.getElementById('eventlog-header').innerText = this.capitalize(player.room);
-        this.addEntryToLog({
-            time: pack.time,
-            text: 'Welcome to ' + this.capitalize(player.room) + ', <span class="eventlog-username">' + player.username + '</span>!'
-        });
-        this.addEntryToLog({
-            time: pack.time,
-            text: pack.motd
-        });
-        this.logUserList(pack);
+        this.eventLog = new EventLog();
+        this.eventLog.setHeaderText(player.room);
+        this.eventLog.displayWelcomeMessage(player);
+        this.eventLog.addEntryToLog({text: pack.motd});
+        this.eventLog.logUserList(this.world.players);
 
         this.socket.on('player-connected', (pack) => {
             this.onPlayerConnected(pack);
@@ -114,15 +111,15 @@ class Client{
         });
 
         this.socket.on('log-player-message', (pack) => {
-            this.logUserMessage(pack);
+            this.eventLog.logUserMessage(pack);
         });
     
         this.socket.on('log-event', (pack) => {
-            this.logEvent(pack);
+            this.eventLog.logEvent(pack);
         });
 
         this.socket.on('log-player-list', (pack) => {
-            this.logUserList(pack);
+            this.eventLog.logUserList(this.world.players);
         });
         
         let input = document.getElementById('eventlog-input');
@@ -368,14 +365,12 @@ class Client{
         this.world.unpack(worldPack);
 
         this.world.on('player-added', (player) => {
-            this.addEntryToLog({
-                time: new Date().toLocaleTimeString().toLowerCase(),
+            this.eventLog.addEntryToLog({
                 text: '<span class="eventlog-username">' + player.username + '</span> connected!'
             });
         });
         this.world.on('player-removed', (player) => {
-            this.addEntryToLog({
-                time: new Date().toLocaleTimeString().toLowerCase(),
+            this.eventLog.addEntryToLog({
                 text: '<span class="eventlog-username">' + player.username + '</span> disconnected!'
             });
         });
@@ -429,62 +424,6 @@ class Client{
         });
     }
 
-    capitalize(str){
-        if(typeof s !== 'string') str = str.toString();
-        return str.charAt(0).toUpperCase() + str.slice(1);
-    }
-
-    logUserMessage(data){
-        let text = '<span class="eventlog-username">' + data.username + '</span> says, <span class="eventlog-msg">"' + data.text + '"</span>';
-        if(data.type == 'loud'){
-            text = '<span class="eventlog-username">' + data.username + '</span> yells, <span class="eventlog-msg">"' + data.text + '"</span>';
-        }
-        
-        this.addEntryToLog({
-            time: data.time,
-            text: text
-        });
-    }
-
-    logEvent(data){
-        this.addEntryToLog({
-            time: data.time,
-            text: data.text
-        });
-    }
-
-    logUserList(data){
-        let msg = '';        
-        let first = true;
-        let count = 0;
-        for(let u in this.world.players){
-            if(first == false){
-                msg += ', ';
-            }
-            let other = this.world.players[u];
-            count++;
-            msg += '<span class="eventlog-username">' + other.username + '</span>'
-            if(first == true){
-                first = false;
-            }
-        }
-        this.addEntryToLog({
-            time: data.time,
-            text: 'Users: ' + msg + ' (Total: ' + count + ')'
-        });
-    }
-
-    addEntryToLog(entry){
-        let contents = document.getElementById('eventlog-contents');
-        let elem = document.createElement('div');
-        elem.id = 'eventlog-entry';
-        elem.innerHTML = '[' + entry.time + '] ' + entry.text;
-        contents.append(elem);
-        contents.scrollTop = contents.scrollHeight;
-
-        //this.boop_sound.play();
-    }
-
     onPlayerConnected(pack){
         let playerData = pack.player;
         let other = new Player(playerData.uuid, this.world, playerData.username, playerData.room, new Vector3(playerData.position.x, playerData.position.y, playerData.position.z), new Vector3(playerData.rotation.x, playerData.rotation.y, playerData.rotation.z));
@@ -535,8 +474,7 @@ class Client{
         if(pack.type !== null){
             actionName = 'placed'
         }                    
-        this.addEntryToLog({
-            time: pack.time,
+        this.eventLog.addEntryToLog({
             text: '<span class="eventlog-username">' + this.world.getPlayer(pack.playerUUID).username + '</span> ' + actionName + ' terrain.'
         });
     }
@@ -670,7 +608,6 @@ function generateHeadMesh(gl){
 
     return new Mesh(gl, indices, positions, normals, uvs);
 }
-
 
 let vertShaderSourceString = `#version 300 es
 
