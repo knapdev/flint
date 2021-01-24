@@ -6,6 +6,8 @@ import Direction from './direction.js';
 
 import Vector3 from '../math/vector3.js';
 
+import Player from '../player.js';
+
 class World{
 
     static CHUNK_SIZE = 8;
@@ -13,16 +15,43 @@ class World{
     name = '';
 
     chunks = {};
-
     players = {};
 
-    onChunkCreatedCallbacks = [];
-    onChunkDestroyedCallbacks = [];
-    onChunkUpdatedCallbacks = [];
+	events = {};
 
     constructor(name){
-        this.name = name || 'New World';
-    }
+		this.name = name || 'New World';
+
+		this.events['player-added'] = [];
+		this.events['player-removed'] = [];
+	}
+	
+	on(type, callback){
+		this.events[type].push({
+			once: false,
+			callback: callback
+		});
+	}
+
+	once(type, callback){
+		this.events[type].push({
+			once: true,
+			callback: callback
+		});
+	}
+
+	ignore(type, callback){
+		this.events[type].splice(this.events[type].indexOf(callback), 1);
+	}
+
+	emit(type, args){
+		for(let i in this.events[type]){
+			this.events[type][i].callback(args);
+			if(this.events[type][i].once){
+				this.ignore(type, this.events[type][i].callback);
+			}
+		}
+	}
 
     tick(delta){
 
@@ -30,11 +59,14 @@ class World{
 
     addPlayer(player){
         if(this.players[player.uuid] == undefined){
-            this.players[player.uuid] = player;
+			this.players[player.uuid] = player;
+			
+			this.emit('player-added', player);
         }
     }
 
     removePlayer(uuid){
+		this.emit('player-removed', this.players[uuid]);
         delete this.players[uuid];
     }
 
@@ -95,25 +127,6 @@ class World{
         }else{
             return null;
         }
-    }
-
-    registerOnChunkCreatedCallback(callback){
-        this.onChunkCreatedCallbacks.push(callback);
-    }
-    unregisterOnChunkCreatedCallback(callback){
-        this.onChunkCreatedCallbacks.remove(callback);
-    }
-    registerOnChunkDestroyedCallback(callback){
-        this.onChunkDestroyedCallbacks.push(callback);
-    }
-    unregisterOnChunkDestroyedCallback(callback){
-        this.onChunkDestroyedCallbacks.remove(callback);
-    }
-    registerOnChunkUpdatedCallback(callback){
-        this.onChunkUpdatedCallbacks.push(callback);
-    }
-    unregisterOnChunkUpdatedCallback(callback){
-        this.onChunkUpdatedCallbacks.remove(callback);
     }
 
     getNoise(x, y, z, scale, max){
@@ -246,6 +259,44 @@ class World{
 		}
 
 		return null;
+	}
+
+	pack(){
+		let chunkDataList = [];
+		for(let c in this.chunks){
+			let chunk = this.chunks[c];
+			chunkDataList.push(chunk.pack());
+		}
+
+		let playersInWorld = {};
+		for(let p in this.players){
+			let pp = this.players[p];
+
+			playersInWorld[pp.uuid] = pp.pack();
+		}
+
+		let pack = {
+			name: this.name,
+			chunks: chunkDataList,
+			players: playersInWorld
+		}
+		return pack;
+	}
+
+	unpack(pack){
+		for(let c in pack.chunks){
+            let data = pack.chunks[c];
+
+            let chunk = new Chunk(this, new Coord(data.coord.x, data.coord.y, data.coord.z));
+            chunk.unpack(data);
+            this.addChunk(chunk);            
+        }
+
+        for(let u in pack.players){
+            let pack_data = pack.players[u];
+            let other = new Player(pack_data.uuid, this, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
+            this.addPlayer(other);
+        }
 	}
 }
 

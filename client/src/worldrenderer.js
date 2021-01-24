@@ -30,9 +30,9 @@ class WorldRenderer{
         //     this.texture = texture;
         // });
 
-        this.world.registerOnChunkCreatedCallback(this.onChunkCreated.bind(this));
-        this.world.registerOnChunkDestroyedCallback(this.onChunkDestroyed.bind(this));
-        this.world.registerOnChunkUpdatedCallback(this.onChunkUpdated.bind(this));
+        // this.world.registerOnChunkCreatedCallback(this.onChunkCreated.bind(this));
+        // this.world.registerOnChunkDestroyedCallback(this.onChunkDestroyed.bind(this));
+        // this.world.registerOnChunkUpdatedCallback(this.onChunkUpdated.bind(this));
     }
 
     render(){

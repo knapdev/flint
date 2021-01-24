@@ -78,23 +78,15 @@ class Client{
         console.log('Client started.');
         document.getElementById('login-container').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
+        
         this.initRenderer();
         this.loadAssets();
-        this.initWorld(pack.world_name, pack.chunk_data);
+        this.initWorld(pack.world);
 
-        let player = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
         this.uuid = pack.uuid;
-
-        this.world.addPlayer(player);
-
-        for(let u in pack.player_list){
-            let pack_data = pack.player_list[u];
-            let other = new Player(pack_data.uuid, this.world, pack_data.username, pack_data.room, new Vector3(pack_data.position.x, pack_data.position.y, pack_data.position.z), new Vector3(pack_data.rotation.x, pack_data.rotation.y, pack_data.rotation.z));
-            this.world.addPlayer(other);
-        }
+        let player = this.world.getPlayer(this.uuid);
 
         document.getElementById('eventlog-header').innerText = this.capitalize(player.room);
-
         this.addEntryToLog({
             time: pack.time,
             text: 'Welcome to ' + this.capitalize(player.room) + ', <span class="eventlog-username">' + player.username + '</span>!'
@@ -142,6 +134,7 @@ class Client{
                     });
                 }
                 input.value = '';
+                input.blur();
             }
         });
 
@@ -370,18 +363,24 @@ class Client{
         this.boop_sound.volume = 0.25;
     }
 
-    initWorld(name, chunk_data){
-        this.world = new World(name);
+    initWorld(worldPack){
+        this.world = new World(worldPack.name);
+        this.world.unpack(worldPack);
+
+        this.world.on('player-added', (player) => {
+            this.addEntryToLog({
+                time: new Date().toLocaleTimeString().toLowerCase(),
+                text: '<span class="eventlog-username">' + player.username + '</span> connected!'
+            });
+        });
+        this.world.on('player-removed', (player) => {
+            this.addEntryToLog({
+                time: new Date().toLocaleTimeString().toLowerCase(),
+                text: '<span class="eventlog-username">' + player.username + '</span> disconnected!'
+            });
+        });
+
         this.worldRenderer = new WorldRenderer(this.world, this.renderer);
-
-        for(let c in chunk_data){
-            let data = chunk_data[c];
-
-            let chunk = new Chunk(this.world, new Coord(data.coord.x, data.coord.y, data.coord.z));
-            chunk.unpack(data);
-            this.world.addChunk(chunk);            
-        }
-
         for(let c in this.world.chunks){
             let chunk = this.world.chunks[c];
             this.worldRenderer.onChunkCreated(chunk);
@@ -487,20 +486,12 @@ class Client{
     }
 
     onPlayerConnected(pack){
-        let other = new Player(pack.uuid, this.world, pack.username, pack.room, new Vector3(pack.position.x, pack.position.y, pack.position.z), new Vector3(pack.rotation.x, pack.rotation.y, pack.rotation.z));
+        let playerData = pack.player;
+        let other = new Player(playerData.uuid, this.world, playerData.username, playerData.room, new Vector3(playerData.position.x, playerData.position.y, playerData.position.z), new Vector3(playerData.rotation.x, playerData.rotation.y, playerData.rotation.z));
         this.world.addPlayer(other);
-        this.addEntryToLog({
-            time: pack.time,
-            text: '<span class="eventlog-username">' + other.username + '</span> connected!'
-        });
     }
 
     onPlayerDisconnected(pack){
-        let other = this.world.getPlayer(pack.uuid);
-        this.addEntryToLog({
-            time: pack.time,
-            text: '<span class="eventlog-username">' + other.username + '</span> disconnected.'
-        });
         this.world.removePlayer(pack.uuid);
     }
 

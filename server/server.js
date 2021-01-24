@@ -93,6 +93,10 @@ class Server{
                 this.parseMessage(socket.uuid, pack);
             });
 
+            socket.on('queue-action', (pack) => {
+                this.onQueueAction(socket.uuid, pack);
+            });
+
             socket.on('disconnect', () => {
                 delete this.SOCKETS[socket.uuid];
 
@@ -188,58 +192,19 @@ class Server{
                 console.log('Player [' + player.username + '] connected!');
 
                 this.world.addPlayer(player);
-
-                let chunkDataList = [];
-                for(let c in this.world.chunks){
-                    let chunk = this.world.chunks[c];
-                    chunkDataList.push(chunk.pack());
-                }
-
-                let playersInWorld = {};
-                for(let p in this.world.players){
-                    let pp = this.world.players[p];
-
-                    playersInWorld[pp.uuid] = pp.pack();
-                }
     
                 let socket = this.SOCKETS[socketUUID];
                 socket.emit('login-response', {
                     success: true,
-                    uuid: player.uuid,
                     time: new Date().toLocaleTimeString().toLowerCase(),
-                    username: player.username,
-                    room: player.room,
                     motd: this.motd,
-                    position: {
-                        x: player.position.x,
-                        y: player.position.y,
-                        z: player.position.z
-                    },
-                    rotation: {
-                        x: player.rotation.x,
-                        y: player.rotation.y,
-                        z: player.rotation.z
-                    },
-                    player_list: playersInWorld,
-                    world_name: this.world.name,
-                    chunk_data: chunkDataList
+                    uuid: player.uuid,
+                    world: this.world.pack()                    
                 });
 
                 socket.broadcast.emit('player-connected', {
-                    uuid: player.uuid,
                     time: new Date().toLocaleTimeString().toLowerCase(),
-                    username: player.username,
-                    room: player.room,
-                    position: {
-                        x: player.position.x,
-                        y: player.position.y,
-                        z: player.position.z
-                    },
-                    rotation: {
-                        x: player.rotation.x,
-                        y: player.rotation.y,
-                        z: player.rotation.z
-                    }
+                    player: player.pack()
                 });                
             }else{
                 socket.emit('login-response', {
