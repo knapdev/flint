@@ -4,6 +4,7 @@ import Renderer from './graphics/renderer.js';
 import Shader from './graphics/shader.js';
 import Mesh from './graphics/mesh.js';
 import Texture from './graphics/texture.js';
+import Geometry from './graphics/geometry.js';
 
 import Matrix4 from '../../shared/math/matrix4.js';
 import Vector3 from '../../shared/math/vector3.js';
@@ -334,7 +335,7 @@ class Client{
     }
 
     loadAssets(){
-        this.mesh = generateMesh(this.renderer.getContext());
+        this.mesh = Geometry.generateMesh(this.renderer.getContext(), Geometry.PrimitiveType.CUBE);//generateMesh(this.renderer.getContext());
         this.head_mesh = generateHeadMesh(this.renderer.getContext());
 
         Texture.load(this.renderer.getContext(), '/client/res/textures/test.png', (texture) => {
@@ -551,134 +552,6 @@ class Client{
 }
 
 export default Client;
-
-
-function generateMesh(gl){
-    let positions = [
-        //top
-        -0.5, 0.5, -0.5,
-        -0.5, 0.5, 0.5,
-        0.5, 0.5, 0.5,
-        0.5, 0.5, -0.5,
-
-        //bottom
-        -0.5, -0.5, 0.5,
-        -0.5, -0.5, -0.5,
-        0.5, -0.5, -0.5, 
-        0.5, -0.5, 0.5,
-
-        //south
-        -0.5, 0.5, 0.5,
-        -0.5, -0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, 0.5, 0.5,
-
-        //north
-        0.5, 0.5, -0.5,
-        0.5, -0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, 0.5, -0.5,
-
-        //west
-        -0.5, 0.5, -0.5,
-        -0.5, -0.5, -0.5,
-        -0.5, -0.5, 0.5,
-        -0.5, 0.5, 0.5,
-
-        //east
-        0.5, 0.5, 0.5,
-        0.5, -0.5, 0.5,
-        0.5, -0.5, -0.5,
-        0.5, 0.5, -0.5,
-    ];
-
-    let normals = [
-        //top
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 0.0,
-
-        //bottom
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, -1.0, 0.0,
-
-        //south
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-        0.0, 0.0, 1.0,
-
-        //north
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, -1.0,
-
-        //west
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-        -1.0, 0.0, 0.0,
-
-        //east
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0
-    ];
-
-    let uvs = [
-        //top
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-
-        //bottom
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-
-        //south
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-
-        //north
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-
-        //west
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-
-        //east
-        0, 0,
-        0, 1,
-        1, 1,
-        1, 0,
-    ];
-
-    let indices = [
-        0, 1, 2, 2, 3, 0,       //top
-        4, 5, 6, 6, 7, 4,       //bottom
-        8, 9, 10, 10, 11, 8,    //south
-        12, 13, 14, 14, 15, 12, //north
-        16, 17, 18, 18, 19, 16, //west
-        20, 21, 22, 22, 23, 20, //east
-    ];
-
-    return new Mesh(gl, indices, positions, normals, uvs);
-}
 
 function generateHeadMesh(gl){
     let positions = [
