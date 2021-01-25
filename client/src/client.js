@@ -251,6 +251,7 @@ class Client{
         for(let u in this.world.players){
             let other = this.world.players[u];
             if(other != null && other.uuid != this.uuid){
+                //Head
                 this.renderer.setTexture(this.guy_texture);
                 {
                     let matrix = Matrix4.create();
@@ -258,17 +259,68 @@ class Client{
                     matrix = Matrix4.rotateY(matrix, other.rotation.y);
                     matrix = Matrix4.rotateX(matrix, other.rotation.x);
                     matrix = Matrix4.translate(matrix, 0.0, 0.25, 0.0);
-                    matrix = Matrix4.scale(matrix, 0.5, 0.5, 0.5);
+                    matrix = Matrix4.scale(matrix, 0.4, 0.4, 0.4);
                     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
                     this.renderer.drawMesh(this.head_mesh);
                 }
 
                 this.renderer.setTexture(this.texture);
+                //Torso
                 {
                     let matrix = Matrix4.create();
-                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.125, other.position.z);
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.225, other.position.z);
                     matrix = Matrix4.rotateY(matrix, other.rotation.y);
-                    matrix = Matrix4.scale(matrix, 0.4, 0.25, 0.25);
+                    matrix = Matrix4.scale(matrix, 0.32, 0.15, 0.2);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
+                }
+                //Left Arm
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.225, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.translate(matrix, -0.21, 0, 0);
+                    matrix = Matrix4.scale(matrix, 0.1, 0.15, 0.1);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
+                }
+                //Right Arm
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.225, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.translate(matrix, 0.21, 0, 0);
+                    matrix = Matrix4.scale(matrix, 0.1, 0.15, 0.1);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
+                }
+                //Left Leg
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.1, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.translate(matrix, -0.07, 0, 0);
+                    matrix = Matrix4.scale(matrix, 0.12, 0.2, 0.12);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
+                }
+                //Right leg
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.1, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.translate(matrix, 0.07, 0, 0);
+                    matrix = Matrix4.scale(matrix, 0.12, 0.2, 0.12);
+                    this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
+                    this.renderer.drawMesh(this.mesh);
+                }
+                //Backpack
+                {
+                    let matrix = Matrix4.create();
+                    matrix = Matrix4.translate(matrix, other.position.x, other.position.y + 0.22, other.position.z);
+                    matrix = Matrix4.rotateY(matrix, other.rotation.y);
+                    matrix = Matrix4.translate(matrix, 0, 0, 0.14);
+                    matrix = Matrix4.scale(matrix, 0.2, 0.1, 0.08);
                     this.renderer.shader.setUniformMatrix4fv('u_model', matrix);
                     this.renderer.drawMesh(this.mesh);
                 }

@@ -54,8 +54,8 @@ class Player{
 
         if(this.move_input.magnitude() > 0){
             this.move_input = this.move_input.normalize();
-            vel.x = this.move_input.x * 1.4 * delta;
-            vel.z = this.move_input.z * 1.4 * delta;
+            vel.x = this.move_input.x * 0.7 * delta;
+            vel.z = this.move_input.z * 0.7 * delta;
         }else{
             vel.x = 0;
             vel.z = 0;
