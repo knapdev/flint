@@ -23,14 +23,50 @@ class Player{
         this.aabb = null;
         this.isGrounded = false;
         this.velocity = new Vector3();
+
+        this.actions = [];
+        this.currentAction = null;
     }
 
     tick(delta){
+
+        this.processCurrentAction(delta);
 
         this.look(delta);
         this.move(delta);
         
         this.calculateSelectedCells();
+    }
+
+    processCurrentAction(delta){
+        if(this.getCurrentAction() == null){
+            if(this.actions.length > 0){
+                this.currentAction = this.actions[0];
+                this.getCurrentAction().emit('started');
+            }
+        }else{
+            this.getCurrentAction().tick(delta);
+
+            if(this.getCurrentAction().isCancelled){
+            }
+
+            if(this.getCurrentAction().isComplete || this.getCurrentAction().isCancelled){
+                this.actions.shift();
+                this.currentAction = null;
+            }
+        }
+    }
+
+    addActionToQueue(action){
+        this.actions.push(action);
+    }
+
+    getCurrentAction(){
+        return this.currentAction;   
+    }
+
+    eat(){
+        console.log('Player hunger reduced.');
     }
 
     look(delta){
@@ -56,6 +92,7 @@ class Player{
             this.move_input = this.move_input.normalize();
             vel.x = this.move_input.x * 0.7 * delta;
             vel.z = this.move_input.z * 0.7 * delta;
+            if(this.getCurrentAction()) this.getCurrentAction().cancel();
         }else{
             vel.x = 0;
             vel.z = 0;

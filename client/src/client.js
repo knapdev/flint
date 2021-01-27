@@ -59,7 +59,11 @@ class Client{
     stats = null;
     eventLog = null;
 
+    actionTimerBar = null;
+
     constructor(config){
+        this.actionTimerBar = document.getElementById('action-timer-back');
+        this.actionTimerBar.style.visibility = 'hidden';
     }
 
     connect(){
@@ -120,6 +124,32 @@ class Client{
 
         this.socket.on('log-player-list', (pack) => {
             this.eventLog.logUserList(this.world.players);
+        });
+
+        this.socket.on('action-queued', (pack) => {
+            // this.eventLog.addEntryToLog({
+            //     text: pack.text
+            // });
+            this.actionTimerBar.style.visibility = 'visible';
+            document.getElementById('action-timer').style.width = 0 + 'px';
+        });
+
+        this.socket.on('action-progress', (pack) => {
+            document.getElementById('action-timer').style.width = (pack.progress / pack.duration) * 100 + '%';
+        });
+
+        this.socket.on('action-completed', (pack) => {
+            // this.eventLog.addEntryToLog({
+            //     text: pack.text
+            // });
+            this.actionTimerBar.style.visibility = 'hidden';
+        });
+
+        this.socket.on('action-cancelled', (pack) => {
+            this.eventLog.addEntryToLog({
+                text: pack.text
+            });
+            this.actionTimerBar.style.visibility = 'hidden';
         });
         
         let input = document.getElementById('eventlog-input');
@@ -218,6 +248,11 @@ class Client{
 
             if(Keyboard.getKeyDown(Keyboard.KeyCode.Z)){
                 this.renderWorld = !this.renderWorld;
+            }
+
+            if(Keyboard.getKeyDown(Keyboard.KeyCode.E)){
+                console.log('hmm');
+                this.socket.emit('queue-action', {});
             }
         }
 

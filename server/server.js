@@ -19,6 +19,8 @@ import Chunk from '../shared/world/chunk.js';
 import Coord from '../shared/world/coord.js';
 
 import Noise from '../shared/math/noise.js';
+import ActionEat from '../shared/action/action_eat.js';
+import ActionMine from '../shared/action/action_mine.js';
 
 class Server{
 
@@ -326,23 +328,41 @@ class Server{
 
     onTerrainRemoved(socketUUID, pack){
         let player = this.world.getPlayer(socketUUID);
+        let coord = player.selectedCoordInside;
         if(player){
-            let coord = player.selectedCoordInside;
-            if(coord !== null){
-                let cell = this.world.getCell(coord);
-                if(cell){
-                    cell.setTerrain(null);
-                    this.io.emit('terrain-changed', {
-                        playerUUID: player.uuid,
-                        coord: {
-                            x: coord.x,
-                            y: coord.y,
-                            z: coord.z
-                        },
-                        type: null
-                    });
-                }
-            }
+            let mineAction = new ActionMine(player, this.world, coord, 5);
+            mineAction.on('started', () => {
+                this.SOCKETS[socketUUID].emit('action-queued', {
+                });
+                this.io.emit('log-event', {
+                    text: '<span class="eventlog-username">' + player.username + '</span> started mining.'
+                });
+            });
+            mineAction.on('progress', (progress) => {
+                this.SOCKETS[socketUUID].emit('action-progress', {
+                    progress: progress,
+                    duration: 5
+                });
+            });
+            mineAction.on('completed', () => {
+                this.SOCKETS[socketUUID].emit('action-completed', {
+                });
+                this.io.emit('terrain-changed', {
+                    playerUUID: player.uuid,
+                    coord: {
+                        x: coord.x,
+                        y: coord.y,
+                        z: coord.z
+                    },
+                    type: null
+                });
+            });
+            mineAction.on('cancelled', () => {
+                this.SOCKETS[socketUUID].emit('action-cancelled', {
+                    text: 'You cancelled mining.'
+                });
+            });
+            player.addActionToQueue(mineAction);
         }
     }
 
@@ -356,6 +376,35 @@ class Server{
         if(player){
             player.look_delta.x = pack.x;
             player.look_delta.y = pack.y;
+        }
+    }
+
+    onQueueAction(socketUUID, pack){
+        let player = this.world.getPlayer(socketUUID);
+        if(player){
+            let eatAction = new ActionEat(player, 3);
+            eatAction.on('started', () => {
+                this.SOCKETS[socketUUID].emit('action-queued', {
+                    text: 'You start eating.'
+                });
+            });
+            eatAction.on('progress', (progress) => {
+                this.SOCKETS[socketUUID].emit('action-progress', {
+                    progress: progress,
+                    duration: 3
+                });
+            });
+            eatAction.on('completed', () => {
+                this.SOCKETS[socketUUID].emit('action-completed', {
+                    text: 'You finish eating. *BURP*'
+                });
+            });
+            eatAction.on('cancelled', () => {
+                this.SOCKETS[socketUUID].emit('action-completed', {
+                    text: 'You cancelled eating.'
+                });
+            });
+            player.addActionToQueue(eatAction);
         }
     }
 
