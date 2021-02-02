@@ -129,6 +129,7 @@ class World{
         }
     }
 
+	// Not used
     getNoise(x, y, z, scale, max){
 		return Math.floor((this.noise.simplex3(x * scale, y * scale, z * scale) + 1.0) * (max / 2.0));
     }

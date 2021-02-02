@@ -21,6 +21,7 @@ import Coord from '../shared/world/coord.js';
 import Noise from '../shared/math/noise.js';
 import ActionEat from '../shared/action/action_eat.js';
 import ActionMine from '../shared/action/action_mine.js';
+import ActionPlace from '../shared/action/action_place.js';
 
 class Server{
 
@@ -306,23 +307,41 @@ class Server{
 
     onTerrainAdded(socketUUID, pack){
         let player = this.world.getPlayer(socketUUID);
+        let coord = player.selectedCoordOutside;
         if(player){
-            let coord = player.selectedCoordOutside;
-            if(coord !== null){
-                let cell = this.world.getCell(coord);
-                if(cell){
-                    cell.setTerrain(1);
-                    this.io.emit('terrain-changed', {
-                        playerUUID: player.uuid,
-                        coord: {
-                            x: coord.x,
-                            y: coord.y,
-                            z: coord.z
-                        },
-                        type: 1
-                    });
-                }
-            }
+            let placeAction = new ActionPlace(player, this.world, coord, 5);
+            placeAction.on('started', () => {
+                this.SOCKETS[socketUUID].emit('action-queued', {
+                });
+                this.io.emit('log-event', {
+                    text: '<span class="eventlog-username">' + player.username + '</span> started placing.'
+                });
+            });
+            placeAction.on('progress', (progress) => {
+                this.SOCKETS[socketUUID].emit('action-progress', {
+                    progress: progress,
+                    duration: 5
+                });
+            });
+            placeAction.on('completed', () => {
+                this.SOCKETS[socketUUID].emit('action-completed', {
+                });
+                this.io.emit('terrain-changed', {
+                    playerUUID: player.uuid,
+                    coord: {
+                        x: coord.x,
+                        y: coord.y,
+                        z: coord.z
+                    },
+                    type: 1
+                });
+            });
+            placeAction.on('cancelled', () => {
+                this.SOCKETS[socketUUID].emit('action-cancelled', {
+                    text: 'You cancelled placing.'
+                });
+            });
+            player.addActionToQueue(placeAction);
         }
     }
 
