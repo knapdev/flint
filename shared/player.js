@@ -71,8 +71,8 @@ class Player{
 
     look(delta){
         if(this.is_looking == true){
-            this.rotation.y -= this.look_delta.x * 0.15 * delta;
-            this.rotation.x -= this.look_delta.y * 0.15 * delta;
+            this.rotation.y -= this.look_delta.x * 0.3 * delta;
+            this.rotation.x -= this.look_delta.y * 0.3 * delta;
             this.rotation.x = Utils.clamp(this.rotation.x, Utils.degToRad(-90), Utils.degToRad(90));
             this.look_delta.x = 0;
             this.look_delta.y = 0;
@@ -90,8 +90,8 @@ class Player{
 
         if(this.move_input.magnitude() > 0){
             this.move_input = this.move_input.normalize();
-            vel.x = this.move_input.x * 0.7 * delta;
-            vel.z = this.move_input.z * 0.7 * delta;
+            vel.x = this.move_input.x * 5.0 * delta;
+            vel.z = this.move_input.z * 5.0 * delta;
             if(this.getCurrentAction()) this.getCurrentAction().cancel();
         }else{
             vel.x = 0;

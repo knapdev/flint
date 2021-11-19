@@ -189,6 +189,8 @@ class Client{
     update(delta){
         Keyboard._update();
 
+        let player = this.world.getPlayer(this.uuid);
+
         if(document.body === document.activeElement){
             let key_input = {
                 up: false,
@@ -211,6 +213,7 @@ class Client{
             }
             if(Keyboard.getKeyDown(Keyboard.KeyCode.SPACE)){
                 key_input['space'] = true;
+                //player.jump();
             }
             
             if(key_input['up'] == true || key_input['down'] == true || key_input['left'] == true || key_input['right'] == true || key_input['space'] == true){
@@ -222,6 +225,7 @@ class Client{
                 this.socket.emit('set-looking', {
                     state: true
                 });
+                player.is_looking = true;
             }
 
             if(Mouse.getButtonUp(Mouse.Button.LEFT)){
@@ -229,6 +233,7 @@ class Client{
                 this.socket.emit('set-looking', {
                     state: false
                 });
+                player.is_looking = false;
             }
 
             if(Mouse.getButtonDown(Mouse.Button.MIDDLE)){
@@ -244,6 +249,10 @@ class Client{
                     x: Mouse.delta.x,
                     y: Mouse.delta.y
                 });
+                
+                player.look_delta.x = Mouse.delta.x;
+                player.look_delta.y = Mouse.delta.y;
+                player.look(delta);
             }
 
             if(Keyboard.getKeyDown(Keyboard.KeyCode.Z)){
@@ -255,6 +264,7 @@ class Client{
                 this.socket.emit('queue-action', {});
             }
         }
+
 
         Mouse._update();
     }
@@ -401,9 +411,9 @@ class Client{
         });
         this.renderer.resize();
 
-        this.renderer.setPerspective(50.0, 0.01, 256.0);
-        this.renderer.setClearColor(0.05, 0.05, 0.1, 1.0);
-        //this.renderer.setClearColor(0.60, 0.80, 0.95);
+        this.renderer.setPerspective(60.0, 0.01, 256.0);
+        //this.renderer.setClearColor(0.05, 0.05, 0.1, 1.0);
+        this.renderer.setClearColor(0.60, 0.80, 0.95);
         //this.renderer.setClearColor(0.99, 0.70, 0.70);
 
         this.stats = new Stats();
@@ -528,6 +538,8 @@ class Client{
             if(other){
                 other.position.set(other_pack.position.x, other_pack.position.y, other_pack.position.z);
                 other.rotation.set(other_pack.rotation.x, other_pack.rotation.y, other_pack.rotation.z);
+                other.velocity.set(other_pack.velocity.x, other_pack.velocity.y, other_pack.velocity.z);
+
                 if(other_pack.selectedCoordInside == null){
                     other.selectedCoordInside = null;
                 }else{

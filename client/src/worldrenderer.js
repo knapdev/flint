@@ -137,7 +137,7 @@ class WorldRenderer{
                                 x + 1, y + 1, z,
                             );
     
-                            let tex = Texture.getUVFromIndex(0, 64, 512);
+                            let tex = Texture.getUVFromIndex(0, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,
@@ -164,7 +164,7 @@ class WorldRenderer{
                                 x + 1, y, z + 1,
                             );
     
-                            let tex = Texture.getUVFromIndex(1, 64, 512);
+                            let tex = Texture.getUVFromIndex(1, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,
@@ -191,7 +191,7 @@ class WorldRenderer{
                                 x, y + 1, z,
                             );
     
-                            let tex = Texture.getUVFromIndex(1, 64, 512);
+                            let tex = Texture.getUVFromIndex(1, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,
@@ -218,7 +218,7 @@ class WorldRenderer{
                                 x + 1, y + 1, z + 1,
                             );
     
-                            let tex = Texture.getUVFromIndex(1, 64, 512);
+                            let tex = Texture.getUVFromIndex(1, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,
@@ -246,7 +246,7 @@ class WorldRenderer{
                                 x + 1, y + 1, z
                             );
     
-                            let tex = Texture.getUVFromIndex(1, 64, 512);
+                            let tex = Texture.getUVFromIndex(1, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,
@@ -274,7 +274,7 @@ class WorldRenderer{
                                 x, y + 1, z + 1
                             );
     
-                            let tex = Texture.getUVFromIndex(1, 64, 512);
+                            let tex = Texture.getUVFromIndex(1, 32, 512);
                             uvs.push(
                                 //bottom
                                 tex.x0, tex.y0,

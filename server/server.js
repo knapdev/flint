@@ -114,7 +114,7 @@ class Server{
     }
 
     run(){
-        const TICK_RATE = 1000 / 20;
+        const TICK_RATE = 1000 / 60;
         setInterval(() => {
             let pack = [];
 
@@ -160,14 +160,17 @@ class Server{
                         y: player.rotation.y,
                         z: player.rotation.z
                     },
+                    velocity: {
+                        x: player.velocity.x,
+                        y: player.velocity.y,
+                        z: player.velocity.z,
+                    },
                     selectedCoordInside: selected,
                     selectedCoordOutside: selectedOut
                 });
 
                 this.io.emit('update-players', pack);
-            }
-
-            
+            }            
         }, TICK_RATE);
     }
 
